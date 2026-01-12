@@ -1,0 +1,1 @@
+java -cp "target/classes:/usr/local/lib/antlr-4.13.2-complete.jar:$CLASSPATH" org.antlr.v4.gui.TestRig eo.cxivo.C_s_makcenom initial test-data/uselessProgram1.č -tree -gui
