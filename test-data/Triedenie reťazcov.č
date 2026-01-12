@@ -1,0 +1,66 @@
+Majme celé číslo počet.
+Načítaj celé číslo do premennej počet.
+
+Majme zoznam textov reťazce.
+
+(Načítame texty.)
+Opakuj od 1 po počet:
+	Majme text reťazec.
+	Načítaj riadok do premennej reťazec.
+	Pridaj na koniec zoznamu reťazce prvok reťazec.
+
+
+Funkcia lexikografickyMenší vracajúca pravdivosť berie text prvý, text druhý a robí:
+	Majme celé číslo kratší, ktoré bude dĺžka zoznamu prvý.
+	Ak dĺžka zoznamu druhý je menšia ako kratší tak kratší bude dĺžka zoznamu druhý.
+
+	Opakuj pre n od 0 po kratší:
+		Ak n-tý znak textu prvý je menší ako n-tý znak textu druhý tak vráť áno.
+		
+	(Ak sa jeden z reťazcov už skončil a doteraz sa rovnali.)
+	Ak dĺžka zoznamu prvý je menšia či rovná ako kratší tak vráť áno, inak vráť nie.
+	
+
+(Mergesort.)
+(Triedi priamo na argumentoch - zoznamy a texty sú totiž predávané funkciám akoby smerníkom, iba čísla, pravdivosti a znaky sú predávané hodnotou.)
+Funkcia spojovacotrieď nevracajúca nič berie zoznam textov neutriedené, celé číslo odkiaľ, celé číslo pokiaľ a robí:
+	(Základný prípad.)
+	Ak odkiaľ plus 1 je väčšie či rovné ako pokiaľ tak hotovo.
+
+	(Najprv rekurzia.)
+	Majme celé číslo stred, ktorý bude (odkiaľ plus pokiaľ plus 1) deleno 2.
+	Spojovacotrieď neutriedené, odkiaľ, stred.
+	Spojovacotrieď neutriedené, stred, pokiaľ.
+	
+	(Teraz spájame.)
+	Majme zoznam textov spojené. (Dočasná premenná.)
+	Majme celé číslo ľavé, ktoré bude odkiaľ.
+	Majme celé číslo pravé, ktoré bude stred.
+	
+	Kým ľavé je menšie ako stred a pravé je menšie ako pokiaľ tak: 
+		Ak lexikografickyMenší prvok zoznamu neutriedené na pozícii (ľavé), prvok zoznamu neutriedené na pozícii (pravé) tak:
+			Pridaj na koniec zoznamu spojené prvok ľavé-ty prvok zoznamu neutriedené.
+			Ľavé bude ľavé plus 1.
+		Inak:
+			Pridaj na koniec zoznamu spojené prvok pravé-ty prvok zoznamu neutriedené.
+			Pravé bude pravé plus 1.
+			
+	(Jednu polovicu sme už prešli celú, ale nevieme ktorú, ideme teda ostatné prvky nahádzať do dočasného poľa.)
+	Kým ľavé je menšie ako stred tak:
+		Pridaj na koniec zoznamu spojené prvok ľavé-ty prvok zoznamu neutriedené.
+		Ľavé bude ľavé plus 1.
+		
+	Kým pravé je menšie ako pokiaľ tak:
+		Pridaj na koniec zoznamu spojené prvok pravé-ty prvok zoznamu neutriedené.
+		Pravé bude pravé plus 1.
+		
+	(Teraz všetky texty prekopírujeme späť.)
+	Opakuj pre i od 0 po pokiaľ mínus odkiaľ:
+		Prvok zoznamu neutriedené na pozícii (n plus odkiaľ) bude n-tý prvok zoznamu spojené.
+		
+
+Spojovacoutrieď reťazce, 0, počet.
+
+Opakuj pre i od 0 po počet mínus 1:
+	Vypíš i-ty prvok zoznamu reťazce a odriadkuj.
+

@@ -1,0 +1,35 @@
+Majme celé číslo počet.
+Načítaj celé číslo do premennej počet.
+
+Majme zoznam zoznamov celých čísel matica.
+
+(Načítam vstup.)
+Opakuj od 0 po počet mínus 1:
+	Majme zoznam celých čísel riadok.
+	Opakuj od 0 po počet mínus 1:
+		Majme celé číslo vzdialenosť.
+		Načítaj celé číslo do premennej vzdialenosť.
+		Pridaj na koniec zoznamu riadok prvok vzdialenosť.
+	Pridaj na koniec zoznamu matica prvok riadok.
+
+
+Funkcia minimum vracajúca celé číslo berie celé číslo ľavé, celé číslo pravé a robí:
+	Ak ľavé je menšie ako pravé tak vráť ľavé, inak vráť pravé.
+
+
+(Bez hanby skopírovaný a prepísaný z https://www.geeksforgeeks.org/dsa/floyd-warshall-algorithm-dp-16/.)
+(Hádam to nie je problém, len chcem byť transparentná.)
+Funckia FlojdVaršalovAlgoritmus nevracajúci nič berie zoznam zoznamov celých čísel vzdialenosti a robí:
+	Opakuj pre k od 0 po dĺžka zoznamu susednosť mínus 1:
+		Opakuj pre i od 0 po dĺžka zoznamu susednosť mínus 1:
+			Opakuj pre j od 0 po dĺžka zoznamu susednosť mínus 1:
+				Ak prvok zoznamu susednosť na pozícii (i, k) sa nerovná záporná 1 a prvok zoznamu susednosť na pozícii (k, j) sa nerovná záporná 1 tak:
+					Prvok zoznamu susednosť na pozícii (i, j) bude minimum (prvok zoznamu susednosť na pozícii (i, j), prvok zoznamu susednosť na pozícii (i, k) plus prvok zoznamu susednosť na pozícii (k, j)).
+				
+FlojdVaršalovAlgoritmus (matica).
+
+(Vypíšem výsledok.)
+Opakuj pre i od 0 po počet mínus 1:
+	Opakuj pre j od 0 po počet mínus 1:
+		Vypíš prvok zoznamu matica na pozícii (i, j).
+	Odriadkuj.

@@ -1,0 +1,18 @@
+Majme celé číslo počet.
+Načítaj celé číslo do premennej počet.
+
+(Pre prípad že je počet nula.)
+Ak počet sa rovná 0 tak:
+	Vypíš "Nemá maximum!".
+	Koniec.
+
+Majme celé číslo najväčšie.
+Načítaj celé číslo do premennej najväčšie. (Inicializujeme si ho na prvú položku.)
+
+Opakuj od 1 po počet mínus 1:
+	Majme celé číslo kandidát.
+	Načítaj celé číslo do premennej kandidát.
+	Ak kandidát je väčší ako najväčšie tak najväčšie bude kandidát.
+
+
+Vypíš kandidát a odriadkuj.
