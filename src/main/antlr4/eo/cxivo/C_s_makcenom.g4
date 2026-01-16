@@ -3,24 +3,29 @@
 
 grammar C_s_makcenom;
 
+options { caseInsensitive=true; }
+
 initial
     :    statement* EOF
     ;
 
 statement
-    :    statementBody EOF?
+    :    statementBody SENTENCE_END EOF?
     |    COMMENT EOF?
     |    NEWLINE
     ;
 
 statementBody
-    :   VARIABLE ASSIGNMENT expr SENTENCE_END        # Assignment
+    :   IF logic COMMA? THEN statementBody      # Conditional
+    |   IF logic COMMA? THEN statementBody COMMA ELSE statementBody      # Conditional
+    |   VARIABLE (ASSIGNMENT | LOGIC_ASSIGNMENT) logic        # Assignment
+    |   VARIABLE ASSIGNMENT expr        # Assignment
     ;
 
 // operators - explicit tokens
 // rule labels - for each label a separate visit method is generated
 expr
-    :    LEFT_PAREN expr RIGHT_PAREN                        # Paren
+    :    LEFT_PAREN expr RIGHT_PAREN                        # ExprParen
     |    op=NEGATIVE expr                   # Negative
     |    expr op=(MULTIPLICATION|DIVISION) expr                     # BinaryOperation
     |    expr op=(ADDITION|SUBTRACTION) expr                     # BinaryOperation
@@ -28,7 +33,19 @@ expr
     |    VARIABLE                                     # Identifier
     ;
 
-//
+logic
+    :   LEFT_PAREN logic RIGHT_PAREN                        # LogicParen
+    |   op=NOT logic                           # Negation
+    |   logic op=AND logic                     # BinaryLogicOperation
+    |   XOR_PREFIX logic op=XOR logic          # BinaryLogicOperation
+    |   logic op=OR logic                      # BinaryLogicOperation
+    |   expr op=(LESS_THAN | MORE_THAN | LESS_THAN_OR_EQUAL | MORE_THAN_OR_EQUAL | EQUALS | NOT_EQUALS) expr    # BinaryRelationOperation
+    |   TRUE                                   # LogicalValue
+    |   FALSE                                  # LogicalValue
+    |   VARIABLE                               # LogicIdentifier
+    ;
+
+
 // lexer grammar LanguageLexer;
 
 fragment DIGIT
@@ -69,6 +86,12 @@ ASSIGNMENT
     :    'bude' | 'budú'
     ;
 
+LOGIC_ASSIGNMENT
+    :   'platí keď' | 'platí ak'
+    ;
+
+// Math operations
+
 NEGATIVE
     :    'záporný' | 'záporná' | 'záporné' | 'záporní' | 'záporných'
     ;
@@ -78,17 +101,97 @@ MULTIPLICATION
     ;
 
 DIVISION
-    :    'deleno' | 'delené' | 'delená' | 'delení'
+    :    'deleno' | 'delené' | 'delená' | 'delení' | 'delených'
     ;
 
-
 ADDITION
-    :    'plus'
+    :    'plus' | 'a aj'
     ;
 
 SUBTRACTION
     :    'mínus'
     ;
+
+
+
+// Logic
+
+TRUE
+    : 'áno' | 'pravda'
+    ;
+
+FALSE
+    : 'nie' | 'nepravda' | 'lož'
+    ;
+
+AND
+    : ', '? ('a' | 'aj' | 'ani')
+    ;
+
+OR
+    : ', '? 'či'
+    ;
+
+XOR_PREFIX
+    : 'buď'
+    ;
+
+XOR
+    : ', '? 'alebo'
+    ;
+
+NOT
+    : 'opak'
+    ;
+
+
+
+// Relation
+
+LESS_THAN
+    : 'je menš' ('í' | 'ie'| 'ia') ' ako'
+    | 'sú menš' ('í' | 'ie'| 'ia') ' ako'
+    ;
+
+MORE_THAN
+    : 'je väčš' ('í' | 'ie'| 'ia') ' ako'
+    | 'sú väčš' ('í' | 'ie'| 'ia') ' ako'
+    ;
+
+LESS_THAN_OR_EQUAL
+    : 'je menš' ('í' | 'ie'| 'ia') ' alebo rovn' ('é' | 'í' | 'ý') ' ako'
+    | 'sú menš' ('í' | 'ie'| 'ia') ' alebo rovn' ('é' | 'í' | 'ý') ' ako'
+    ;
+
+MORE_THAN_OR_EQUAL
+    : 'je väčš' ('í' | 'ie'| 'ia') ' alebo rovn' ('é' | 'í' | 'ý') ' ako'
+    | 'sú väčš' ('í' | 'ie'| 'ia') ' alebo rovn' ('é' | 'í' | 'ý') ' ako'
+    ;
+
+EQUALS
+    : 'sa rovná'
+    ;
+
+NOT_EQUALS
+    : 'sa nerovná'
+    ;
+
+// Control flow
+
+IF
+    :   'ak' | 'Ak' | 'keby' | 'Keby' | 'keď' | 'Keď'
+    ;
+
+THEN
+    : ', '? 'tak'
+    ;
+
+ELSE
+    : ', '? 'inak'
+    ;
+
+
+// Other stuff (very proffesional naming)
 
 LEFT_PAREN
     :    '('
@@ -98,12 +201,20 @@ RIGHT_PAREN
     :    ')'
     ;
 
+INDENT
+    : '{'
+    ;
+
+DEDENT
+    : '}'
+    ;
+
 SENTENCE_END
     : '.'
     ;
 
-BTW
-    : 'inak' | 'poznámka' | 'pozn'
+COMMA
+    : ','
     ;
 
 NUMBER
@@ -115,7 +226,7 @@ VARIABLE
     ;
 
 COMMENT
-    : NEWLINE '(' .*? ')'
+    : NEWLINE '(' ~('\n' | '\r')* ')'
     ;
 
 NEWLINE

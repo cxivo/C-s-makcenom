@@ -1,0 +1,31 @@
+číslo bude 3.
+čísličko bude 5 mínus 4.
+číslisko bude záporných 5 krát 13 mínus 8 delené 2.
+(toto je trápny komentár)
+Ačko bude (5 krát 13).
+Bčko bude záporných ((5 krát 13) mínus 8) delené 2.
+
+(Dokonca vie byť aj viac na jednom riadku)
+Cčko bude 1. Dčko bude 2.
+(Je to hlúpe, prosím nerobte to)
+((Ako hrozné vedia byť komentáre?))))()(())))
+
+
+(teraz logika)
+logická bude pravda.
+Ečko bude buď lož alebo pravda a lož.
+Fko bude buď lož alebo (pravda či lož).
+Gčko bude Ečko či Fko.
+
+(porovnávanie)
+Hčko platí keď 2 je väčšie ako 3.
+Ičko platí keď Ačko je menšie alebo rovné ako Bčko plus Cčko.
+
+(teraz podmienky)
+Ak pravda tak číslo bude 1.
+ak lož, tak číslo bude 1.
+
+Ak opak hodnoty, tak číslo bude 2 plus 2.
+
+Ak výška je menšia ako šírka tak odpoveď bude 1.
+Ak buď (buď Ačko je menšie ako 3 alebo Bčko je väčšie ako 5) a Ičko alebo Gčko tak odpoveď bude 1.
