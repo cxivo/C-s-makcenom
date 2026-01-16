@@ -10,6 +10,9 @@ Cčko bude 1. Dčko bude 2.
 (Je to hlúpe, prosím nerobte to)
 ((Ako hrozné vedia byť komentáre?))))()(())))
 
+(Deklarácie)
+Majme text podnadpis.
+Majme celé číslo Ľ, ktoré bude 7 plus 8.
 
 (teraz logika)
 logická bude pravda.
@@ -28,4 +31,4 @@ ak lož, tak číslo bude 1.
 Ak opak hodnoty, tak číslo bude 2 plus 2.
 
 Ak výška je menšia ako šírka tak odpoveď bude 1.
-Ak buď (buď Ačko je menšie ako 3 alebo Bčko je väčšie ako 5) a Ičko alebo Gčko tak odpoveď bude 1.
+Ak buď (buď Ačko je menšie ako 3 alebo Bčko je väčšie ako 5) a Ičko, alebo Gčko tak odpoveď bude 1.

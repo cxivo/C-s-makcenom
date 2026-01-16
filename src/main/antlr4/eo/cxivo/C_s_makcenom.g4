@@ -16,7 +16,8 @@ statement
     ;
 
 statementBody
-    :   IF logic COMMA? THEN statementBody      # Conditional
+    :   LET type=(INT|BOOL|STRING|CHAR) VARIABLE (WHICH_WILL_BE expr)?      # Declaration
+    |   IF logic COMMA? THEN statementBody      # Conditional
     |   IF logic COMMA? THEN statementBody COMMA ELSE statementBody      # Conditional
     |   VARIABLE (ASSIGNMENT | LOGIC_ASSIGNMENT) logic        # Assignment
     |   VARIABLE ASSIGNMENT expr        # Assignment
@@ -82,6 +83,8 @@ NameStartChar
    | '\uFDF0'..'\uFFFD'
    ;
 
+// Basic language needs
+
 ASSIGNMENT
     :    'bude' | 'budú'
     ;
@@ -89,6 +92,15 @@ ASSIGNMENT
 LOGIC_ASSIGNMENT
     :   'platí keď' | 'platí ak'
     ;
+
+LET
+    :   'Majme'
+    ;
+
+WHICH_WILL_BE
+    :   ', '? 'ktoré bude'
+    ;
+
 
 // Math operations
 
@@ -190,6 +202,24 @@ ELSE
     : ', '? 'inak'
     ;
 
+
+// Types
+
+INT
+    : 'celé číslo'
+    ;
+
+BOOL
+    : 'pravdivosť'
+    ;
+
+STRING
+    : 'text'
+    ;
+
+CHAR
+    : 'znak'
+    ;
 
 // Other stuff (very proffesional naming)
 
