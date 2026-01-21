@@ -33,6 +33,21 @@ Ak opak hodnoty, tak číslo bude 2 plus 2.
 Ak výška je menšia ako šírka tak odpoveď bude 1.
 Ak buď (buď Ačko je menšie ako 3 alebo Bčko je väčšie ako 5) a Ičko, alebo Gčko tak odpoveď bude 1.
 
+Ak výška je menšia ako šírka tak odpoveď bude 1, inak odpoveď bude 2.
+Ak ačko, tak ak bčko, tak cčko bude 3, inak cčko bude 4.
+Ak ačko, tak {
+    cčko bude 3.
+    Ak bčko, tak {
+        Ečko bude 6.
+        Fko bude 7 plus 6.
+    } inak {
+        Ečko bude 7.
+        Fko bude 7 mínus 6.
+    }
+    Gčko bude pravda.
+} inak Ečko bude 0.
+
+
 (Vstup a výstup)
 Načítaj celé číslo do premennej Ačko.
 Vypíš 6 plus 7 krát 8.
@@ -43,3 +58,5 @@ Vypíš Ečko a Fko a odriadkuj.
 Majme zoznam celých čísel vrcholy.
 Majme zoznam celých čísel vrcholy, ktorý bude [1, 2, 3].
 Majme zoznam zoznamov celých čísel hrany, ktorý bude [[1,2], [1,8]].
+
+

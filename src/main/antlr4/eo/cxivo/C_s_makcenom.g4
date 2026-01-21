@@ -10,20 +10,24 @@ initial
     ;
 
 statement
-    :    statementBody SENTENCE_END EOF?
+    :    statementBody SENTENCE_END? EOF?
     |    COMMENT EOF?
     |    NEWLINE
     ;
 
 statementBody
     :   LET type VARIABLE (WHICH_WILL_BE (num_expr | logic_expr | array_expr))?      # Declaration
-    |   IF logic_expr COMMA? THEN statementBody                                  # Conditional
-    |   IF logic_expr COMMA? THEN statementBody COMMA ELSE statementBody         # Conditional
+    |   IF logic_expr COMMA? THEN (statementBody | block) ELSE (statementBody | block)         # Conditional
+    |   IF logic_expr COMMA? THEN (statementBody | block)                                  # Conditional
     |   LOAD input_type INTO_VAR VARIABLE                                   # Input
     |   PRINT (num_expr | logic_expr) AND_PRINT_NEWLINE?                             # Output
     |   PRINT_NEWLINE                                                       # PrintNewLine
     |   VARIABLE (ASSIGNMENT | LOGIC_ASSIGNMENT) logic_expr                      # Assignment
     |   VARIABLE ASSIGNMENT (num_expr | array_expr)                                         # Assignment
+    ;
+
+block
+    :   INDENT statement* DEDENT
     ;
 
 // operators - explicit tokens
@@ -73,7 +77,7 @@ fragment DIGIT
     ;
 
 fragment LETTER
-    :    [a-zA-Z]
+    :    [a-z]
     ;
 
 // copied from https://github.com/antlr/antlr4/blob/master/doc/lexicon.md
@@ -88,7 +92,7 @@ NameChar
    ;
 fragment
 NameStartChar
-   : 'A'..'Z' | 'a'..'z'
+   : 'a'..'z'
    | '\u00C0'..'\u00D6'
    | '\u00D8'..'\u00F6'
    | '\u00F8'..'\u02FF'
