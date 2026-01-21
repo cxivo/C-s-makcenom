@@ -94,7 +94,6 @@ fragment
 NameStartChar
    : 'a'..'z'
    | '\u00C0'..'\u00D6'
-   | '\u00D8'..'\u00F6'
    | '\u00F8'..'\u02FF'
    | '\u0370'..'\u037D'
    | '\u037F'..'\u1FFF'
