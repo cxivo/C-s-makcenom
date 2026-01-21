@@ -22,12 +22,21 @@ statementBody
     |   LOAD input_type INTO_VAR VARIABLE                                   # Input
     |   PRINT (num_expr | logic_expr) AND_PRINT_NEWLINE?                             # Output
     |   PRINT_NEWLINE                                                       # PrintNewLine
-    |   VARIABLE (ASSIGNMENT | LOGIC_ASSIGNMENT) logic_expr                      # Assignment
-    |   VARIABLE ASSIGNMENT (num_expr | array_expr)                                         # Assignment
+    |   id (ASSIGNMENT | LOGIC_ASSIGNMENT) logic_expr                      # Assignment
+    |   id ASSIGNMENT (num_expr | array_expr)                                         # Assignment
     ;
 
 block
     :   INDENT statement* DEDENT
+    ;
+
+id
+    :   (VARIABLE | FIRST | LAST) ('-tý ' | '-ty ')? 'prvok zoznamu' VARIABLE                      # ArrayElement
+    |   'prvok zoznamu' VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN    # ArrayElement
+    |   (VARIABLE | FIRST | LAST) ('-tý ' | '-ty ')? 'znak textu' VARIABLE                         # CharOfText
+    |   (VARIABLE | FIRST | LAST) ('-te ')? 'písmeno textu' VARIABLE                               # CharOfText
+    |   'znak textu' VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN       # CharOfText
+    |   VARIABLE                                                                                   # Variable
     ;
 
 // operators - explicit tokens
@@ -35,22 +44,23 @@ block
 num_expr
     :    LEFT_PAREN num_expr RIGHT_PAREN                                # ExprParen
     |    op=NEGATIVE num_expr                                           # Negative
-    |    num_expr op=(MULTIPLICATION|DIVISION) num_expr                     # BinaryOperation
-    |    num_expr op=(ADDITION|SUBTRACTION) num_expr                        # BinaryOperation
-    |    NUMBER                                                     # Number
-    |    VARIABLE                                                   # Identifier
+    |    num_expr op=(MULTIPLICATION|DIVISION) num_expr                 # BinaryOperation
+    |    num_expr op=(ADDITION|SUBTRACTION) num_expr                    # BinaryOperation
+    |    NUMBER                                                         # Number
+    |    ('dĺžka zoznamu' | 'dĺžka textu') VARIABLE                     # ArraySize
+    |    id                                                             # Identifier
     ;
 
 logic_expr
-    :   LEFT_PAREN logic_expr RIGHT_PAREN           # LogicParen
-    |   op=NOT logic_expr                           # Negation
-    |   logic_expr op=AND logic_expr                     # BinaryLogicOperation
-    |   XOR_PREFIX logic_expr op=XOR logic_expr          # BinaryLogicOperation
-    |   logic_expr op=OR logic_expr                      # BinaryLogicOperation
+    :   LEFT_PAREN logic_expr RIGHT_PAREN                   # LogicParen
+    |   op=NOT logic_expr                                   # Negation
+    |   logic_expr op=AND logic_expr                        # BinaryLogicOperation
+    |   XOR_PREFIX logic_expr op=XOR logic_expr             # BinaryLogicOperation
+    |   logic_expr op=OR logic_expr                         # BinaryLogicOperation
     |   num_expr op=(LESS_THAN | MORE_THAN | LESS_THAN_OR_EQUAL | MORE_THAN_OR_EQUAL | EQUALS | NOT_EQUALS) num_expr    # BinaryRelationOperation
-    |   TRUE                                   # LogicalValue
-    |   FALSE                                  # LogicalValue
-    |   VARIABLE                               # LogicIdentifier
+    |   TRUE                                                # LogicalValue
+    |   FALSE                                               # LogicalValue
+    |   id                                                  # LogicIdentifier
     ;
 
 array_expr
@@ -143,6 +153,14 @@ AND_PRINT_NEWLINE
 
 PRINT_NEWLINE
     :   'Odriadkuj'
+    ;
+
+FIRST
+    :   'prvý' | 'prvé'
+    ;
+
+LAST
+    :   'posledný' | 'posledné'
     ;
 
 // Math operations

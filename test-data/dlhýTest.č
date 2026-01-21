@@ -54,9 +54,21 @@ Vypíš 6 plus 7 krát 8.
 Vypíš Ačko a odriadkuj.
 Vypíš Ečko a Fko a odriadkuj.
 
+
 (Polia)
 Majme zoznam celých čísel vrcholy.
 Majme zoznam celých čísel vrcholy, ktorý bude [1, 2, 3].
 Majme zoznam zoznamov celých čísel hrany, ktorý bude [[1,2], [1,8]].
 
+Ačko bude i-ty prvok zoznamu vrcholy.
+Ačko bude aktuálny prvok zoznamu vrcholy.
+I-ty prvok zoznamu vrcholy bude ačko.
+Prvý prvok zoznamu vrcholy bude ačko.
+
+Hodnota bude prvok zoznamu výšky na pozícii (aktuálny).
+Hodnota bude prvok zoznamu výšky na pozícii (ačko, bčko, cčko).
+
+Ačko bude dĺžka zoznamu vrcholy.
+
+Písmenko bude prvý znak textu pozdrav.
 
