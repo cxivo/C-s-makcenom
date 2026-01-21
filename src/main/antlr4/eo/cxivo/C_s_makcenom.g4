@@ -25,6 +25,9 @@ statementBody
     |   LOAD input_type INTO_VAR VARIABLE                                   # Input
     |   PRINT (num_expr | logic_expr) AND_PRINT_NEWLINE?                             # Output
     |   PRINT_NEWLINE                                                       # PrintNewLine
+    |   END_PROGRAM                     # EndProgram
+    |   BREAK                     # Break
+    |   CONTINUE                     # Continue
     |   id (ASSIGNMENT | LOGIC_ASSIGNMENT) logic_expr                      # Assignment
     |   id ASSIGNMENT (num_expr | array_expr)                                         # Assignment
     ;
@@ -290,6 +293,11 @@ WORD
 
 LIST: 'zoznam';
 OF_LISTS: 'zoznamov';
+
+// Program flow
+END_PROGRAM: 'Koniec';
+BREAK: 'Dlabať';
+CONTINUE: 'Preskoč';
 
 // Other stuff (very proffesional naming)
 

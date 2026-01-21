@@ -84,4 +84,9 @@ Kým počet je väčší ako 0 tak počet bude počet mínus 1.
 Kým počet je väčší ako 0 tak {
     Vypíš počet.
     Počet bude počet mínus 1.
+    Ak počet sa rovná 3 tak dlabať.
+    Ak počet sa rovná 5 tak preskoč.
 }
+
+Koniec.
+
