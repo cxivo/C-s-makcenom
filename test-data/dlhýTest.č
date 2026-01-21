@@ -4,6 +4,8 @@
 (toto je trápny komentár)
 Ačko bude (5 krát 13).
 Bčko bude záporných ((5 krát 13) mínus 8) delené 2.
+Pozdrav bude "ahoj".
+Úvodzovky budú "\"úvodzovky\"".
 
 (Dokonca vie byť aj viac na jednom riadku)
 Cčko bude 1. Dčko bude 2.
@@ -101,7 +103,9 @@ Funkcia zakrič nevracajúca nič berie text čo, celé číslo koľko a robí: 
 }
 
 Výsledok bude sčítaj (malé, veľké).
-Zakrič (pozdrav, 5).
+Zakrič ("Ahoj", 5).
+
+
 
 Koniec.
 

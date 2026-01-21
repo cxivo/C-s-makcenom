@@ -24,7 +24,7 @@ statementBody
     |   'Opakuj od' num_expr 'po' num_expr ':' (statementBody | block)                         # ForLoop
     |   'Kým' logic_expr THEN (statementBody | block)                                          # WhileLoop
     |   LOAD input_type INTO_VAR VARIABLE                                   # Input
-    |   PRINT (num_expr | logic_expr) AND_PRINT_NEWLINE?                             # Output
+    |   PRINT (expr) AND_PRINT_NEWLINE?                             # Output
     |   PRINT_NEWLINE                                                       # PrintNewLine
     |   END_PROGRAM                     # EndProgram
     |   BREAK                           # Break
@@ -33,7 +33,7 @@ statementBody
     |   RETURN expr                     # Return
     |   VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN  # ProcedureCall
     |   id (ASSIGNMENT | LOGIC_ASSIGNMENT) logic_expr                      # Assignment
-    |   id ASSIGNMENT (num_expr | array_expr | VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN)  # Assignment
+    |   id ASSIGNMENT (num_expr | array_expr | TEXT | VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN)  # Assignment
     ;
 
 functionDefinition
@@ -53,7 +53,7 @@ id
     |   VARIABLE                                                                                   # Variable
     ;
 
-expr: num_expr | logic_expr | array_expr;
+expr: num_expr | logic_expr | array_expr | TEXT;
 
 num_expr
     :    LEFT_PAREN num_expr RIGHT_PAREN                                # ExprParen
@@ -115,7 +115,12 @@ NameChar
    | '\u203F'..'\u2040'
    ;
 fragment
-NameStartChar
+NameStartChar:
+   'a' | 'á' | 'ä' | 'b' | 'c' | 'č' | 'd' | 'ď' | 'e' | 'é' | 'f' | 'g' | 'h' | 'i' | 'í' | 'j' | 'k' | 'l' | 'ĺ' | 'ľ' | 'm' | 'n' | 'ň' | 'o' | 'ó' | 'ô' | 'p' | 'q' | 'r' | 'ŕ' | 'ř' | 's' | 'š' | 't' | 'ť' | 'u' | 'ú' | 'ů' | 'v' | 'w' | 'x' | 'y' | 'ý' | 'z' | 'ž';
+
+ /*
+ fragment
+ NameStartChar
    : 'a'..'z'
    | '\u00C0'..'\u00D6'
    | '\u00F8'..'\u02FF'
@@ -128,6 +133,7 @@ NameStartChar
    | '\uF900'..'\uFDCF'
    | '\uFDF0'..'\uFFFD'
    ;
+*/
 
 // Basic language needs
 
@@ -350,6 +356,10 @@ NUMBER
 
 VARIABLE
     :    NameStartChar NameChar*
+    ;
+
+TEXT
+    : '"' (~('\n' | '\r' | '"') | '\\"')* '"'
     ;
 
 COMMENT
