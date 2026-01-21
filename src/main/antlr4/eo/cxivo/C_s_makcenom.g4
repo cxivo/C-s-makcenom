@@ -19,6 +19,9 @@ statementBody
     :   LET type VARIABLE (WHICH_WILL_BE (num_expr | logic_expr | array_expr))?      # Declaration
     |   IF logic_expr COMMA? THEN (statementBody | block) ELSE (statementBody | block)         # Conditional
     |   IF logic_expr COMMA? THEN (statementBody | block)                                  # Conditional
+    |   'Opakuj pre' VARIABLE 'od' num_expr 'po' num_expr ':' (statementBody | block)          # ForLoop
+    |   'Opakuj od' num_expr 'po' num_expr ':' (statementBody | block)                         # ForLoop
+    |   'Kým' logic_expr THEN (statementBody | block)                                          # WhileLoop
     |   LOAD input_type INTO_VAR VARIABLE                                   # Input
     |   PRINT (num_expr | logic_expr) AND_PRINT_NEWLINE?                             # Output
     |   PRINT_NEWLINE                                                       # PrintNewLine

@@ -72,3 +72,16 @@ Ačko bude dĺžka zoznamu vrcholy.
 
 Písmenko bude prvý znak textu pozdrav.
 
+(Cykly)
+Opakuj pre aktuálne od 1 po dĺžka mínus 1: vypíš akutálne.
+Opakuj od 1 po dĺžka mínus 1: vypíš pozdrav.
+Opakuj pre aktuálne od 1 po dĺžka mínus 1: {
+    Vypíš aktuálne.
+}
+
+Kým počet je väčší ako 0 tak počet bude počet mínus 1.
+
+Kým počet je väčší ako 0 tak {
+    Vypíš počet.
+    Počet bude počet mínus 1.
+}
