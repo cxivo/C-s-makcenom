@@ -16,45 +16,53 @@ statement
     ;
 
 statementBody
-    :   LET type VARIABLE (WHICH_WILL_BE expr)?      # Declaration
-    |   IF logic COMMA? THEN statementBody                                  # Conditional
-    |   IF logic COMMA? THEN statementBody COMMA ELSE statementBody         # Conditional
+    :   LET type VARIABLE (WHICH_WILL_BE (num_expr | logic_expr | array_expr))?      # Declaration
+    |   IF logic_expr COMMA? THEN statementBody                                  # Conditional
+    |   IF logic_expr COMMA? THEN statementBody COMMA ELSE statementBody         # Conditional
     |   LOAD input_type INTO_VAR VARIABLE                                   # Input
-    |   PRINT (expr | logic) AND_PRINT_NEWLINE?                             # Output
+    |   PRINT (num_expr | logic_expr) AND_PRINT_NEWLINE?                             # Output
     |   PRINT_NEWLINE                                                       # PrintNewLine
-    |   VARIABLE (ASSIGNMENT | LOGIC_ASSIGNMENT) logic                      # Assignment
-    |   VARIABLE ASSIGNMENT expr                                            # Assignment
+    |   VARIABLE (ASSIGNMENT | LOGIC_ASSIGNMENT) logic_expr                      # Assignment
+    |   VARIABLE ASSIGNMENT (num_expr | array_expr)                                         # Assignment
     ;
 
 // operators - explicit tokens
 // rule labels - for each label a separate visit method is generated
-expr
-    :    LEFT_PAREN expr RIGHT_PAREN                                # ExprParen
-    |    op=NEGATIVE expr                                           # Negative
-    |    expr op=(MULTIPLICATION|DIVISION) expr                     # BinaryOperation
-    |    expr op=(ADDITION|SUBTRACTION) expr                        # BinaryOperation
+num_expr
+    :    LEFT_PAREN num_expr RIGHT_PAREN                                # ExprParen
+    |    op=NEGATIVE num_expr                                           # Negative
+    |    num_expr op=(MULTIPLICATION|DIVISION) num_expr                     # BinaryOperation
+    |    num_expr op=(ADDITION|SUBTRACTION) num_expr                        # BinaryOperation
     |    NUMBER                                                     # Number
     |    VARIABLE                                                   # Identifier
     ;
 
-logic
-    :   LEFT_PAREN logic RIGHT_PAREN           # LogicParen
-    |   op=NOT logic                           # Negation
-    |   logic op=AND logic                     # BinaryLogicOperation
-    |   XOR_PREFIX logic op=XOR logic          # BinaryLogicOperation
-    |   logic op=OR logic                      # BinaryLogicOperation
-    |   expr op=(LESS_THAN | MORE_THAN | LESS_THAN_OR_EQUAL | MORE_THAN_OR_EQUAL | EQUALS | NOT_EQUALS) expr    # BinaryRelationOperation
+logic_expr
+    :   LEFT_PAREN logic_expr RIGHT_PAREN           # LogicParen
+    |   op=NOT logic_expr                           # Negation
+    |   logic_expr op=AND logic_expr                     # BinaryLogicOperation
+    |   XOR_PREFIX logic_expr op=XOR logic_expr          # BinaryLogicOperation
+    |   logic_expr op=OR logic_expr                      # BinaryLogicOperation
+    |   num_expr op=(LESS_THAN | MORE_THAN | LESS_THAN_OR_EQUAL | MORE_THAN_OR_EQUAL | EQUALS | NOT_EQUALS) num_expr    # BinaryRelationOperation
     |   TRUE                                   # LogicalValue
     |   FALSE                                  # LogicalValue
     |   VARIABLE                               # LogicIdentifier
     ;
 
+array_expr
+    :   LEFT_SQUARE (((num_expr COMMA)* num_expr?) | ((logic_expr COMMA)* logic_expr?) | ((array_expr COMMA)* array_expr)) RIGHT_SQUARE
+    ;
+
 type
-    : INT | BOOL | STRING | CHAR
+    : INT | BOOL | STRING | CHAR | LIST of_type
     ;
 
 input_type
     : type | LINE | WORD
+    ;
+
+of_type
+    : OF_INTS | OF_BOOLS | OF_STRINGS | OF_CHARS | OF_LISTS of_type
     ;
 
 
@@ -109,7 +117,7 @@ LET
     ;
 
 WHICH_WILL_BE
-    :   ', '? 'ktoré bude'
+    :   ', '? ('ktoré bude' | 'ktorá bude' | 'ktorý bude' | 'ktoré budú' | 'ktorí budú')
     ;
 
 
@@ -236,21 +244,17 @@ ELSE
 
 
 // Types
-INT
-    : 'celé číslo'
-    ;
+INT: 'celé číslo';
+OF_INTS: 'celých čísel';
 
-BOOL
-    : 'pravdivosť'
-    ;
+BOOL: 'pravdivosť';
+OF_BOOLS: 'pravdivostí';
 
-STRING
-    : 'text'
-    ;
+STRING: 'text';
+OF_STRINGS: 'textov';
 
-CHAR
-    : 'znak'
-    ;
+CHAR: 'znak';
+OF_CHARS: 'znakov';
 
 LINE
     : 'riadok'
@@ -259,6 +263,9 @@ LINE
 WORD
     : 'slovo'
     ;
+
+LIST: 'zoznam';
+OF_LISTS: 'zoznamov';
 
 // Other stuff (very proffesional naming)
 
@@ -269,6 +276,15 @@ LEFT_PAREN
 RIGHT_PAREN
     :    ')'
     ;
+
+LEFT_SQUARE
+    :    '['
+    ;
+
+RIGHT_SQUARE
+    :    ']'
+    ;
+
 
 INDENT
     : '{'

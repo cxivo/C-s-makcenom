@@ -38,3 +38,8 @@ Načítaj celé číslo do premennej Ačko.
 Vypíš 6 plus 7 krát 8.
 Vypíš Ačko a odriadkuj.
 Vypíš Ečko a Fko a odriadkuj.
+
+(Polia)
+Majme zoznam celých čísel vrcholy.
+Majme zoznam celých čísel vrcholy, ktorý bude [1, 2, 3].
+Majme zoznam zoznamov celých čísel hrany, ktorý bude [[1,2], [1,8]].
