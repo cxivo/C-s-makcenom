@@ -88,5 +88,20 @@ Kým počet je väčší ako 0 tak {
     Ak počet sa rovná 5 tak preskoč.
 }
 
+(Funkcie)
+
+Funkcia sčítaj vracajúca celé číslo berie celé číslo jedno, celé číslo druhé a robí: {
+    Vráť jedno plus druhé.
+}
+
+Funkcia zakrič nevracajúca nič berie text čo, celé číslo koľko a robí: {
+    Opakuj od 1 po koľko: {
+        Vypíš čo.
+    }
+}
+
+Výsledok bude sčítaj (malé, veľké).
+Zakrič (pozdrav, 5).
+
 Koniec.
 

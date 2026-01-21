@@ -10,13 +10,14 @@ initial
     ;
 
 statement
-    :    statementBody SENTENCE_END? EOF?
+    :    functionDefinition EOF?
+    |    statementBody SENTENCE_END? EOF?
     |    COMMENT EOF?
     |    NEWLINE
     ;
 
 statementBody
-    :   LET type VARIABLE (WHICH_WILL_BE (num_expr | logic_expr | array_expr))?      # Declaration
+    :   LET type VARIABLE (WHICH_WILL_BE expr)?      # Declaration
     |   IF logic_expr COMMA? THEN (statementBody | block) ELSE (statementBody | block)         # Conditional
     |   IF logic_expr COMMA? THEN (statementBody | block)                                  # Conditional
     |   'Opakuj pre' VARIABLE 'od' num_expr 'po' num_expr ':' (statementBody | block)          # ForLoop
@@ -26,10 +27,17 @@ statementBody
     |   PRINT (num_expr | logic_expr) AND_PRINT_NEWLINE?                             # Output
     |   PRINT_NEWLINE                                                       # PrintNewLine
     |   END_PROGRAM                     # EndProgram
-    |   BREAK                     # Break
-    |   CONTINUE                     # Continue
+    |   BREAK                           # Break
+    |   CONTINUE                        # Continue
+    |   DONE                            # Return
+    |   RETURN expr                     # Return
+    |   VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN  # ProcedureCall
     |   id (ASSIGNMENT | LOGIC_ASSIGNMENT) logic_expr                      # Assignment
-    |   id ASSIGNMENT (num_expr | array_expr)                                         # Assignment
+    |   id ASSIGNMENT (num_expr | array_expr | VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN)  # Assignment
+    ;
+
+functionDefinition
+    : 'Funkcia' VARIABLE ('vracajúca' type | 'nevracajúca nič') 'berie' (type VARIABLE COMMA)* type VARIABLE 'a robí:' block
     ;
 
 block
@@ -45,8 +53,8 @@ id
     |   VARIABLE                                                                                   # Variable
     ;
 
-// operators - explicit tokens
-// rule labels - for each label a separate visit method is generated
+expr: num_expr | logic_expr | array_expr;
+
 num_expr
     :    LEFT_PAREN num_expr RIGHT_PAREN                                # ExprParen
     |    op=NEGATIVE num_expr                                           # Negative
@@ -298,6 +306,8 @@ OF_LISTS: 'zoznamov';
 END_PROGRAM: 'Koniec';
 BREAK: 'Dlabať';
 CONTINUE: 'Preskoč';
+DONE: 'Hotovo';
+RETURN: 'Vráť';
 
 // Other stuff (very proffesional naming)
 
