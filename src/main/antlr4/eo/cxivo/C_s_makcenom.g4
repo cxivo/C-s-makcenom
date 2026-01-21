@@ -16,26 +16,29 @@ statement
     ;
 
 statementBody
-    :   LET type=(INT|BOOL|STRING|CHAR) VARIABLE (WHICH_WILL_BE expr)?      # Declaration
-    |   IF logic COMMA? THEN statementBody      # Conditional
-    |   IF logic COMMA? THEN statementBody COMMA ELSE statementBody      # Conditional
-    |   VARIABLE (ASSIGNMENT | LOGIC_ASSIGNMENT) logic        # Assignment
-    |   VARIABLE ASSIGNMENT expr        # Assignment
+    :   LET type VARIABLE (WHICH_WILL_BE expr)?      # Declaration
+    |   IF logic COMMA? THEN statementBody                                  # Conditional
+    |   IF logic COMMA? THEN statementBody COMMA ELSE statementBody         # Conditional
+    |   LOAD input_type INTO_VAR VARIABLE                                   # Input
+    |   PRINT (expr | logic) AND_PRINT_NEWLINE?                             # Output
+    |   PRINT_NEWLINE                                                       # PrintNewLine
+    |   VARIABLE (ASSIGNMENT | LOGIC_ASSIGNMENT) logic                      # Assignment
+    |   VARIABLE ASSIGNMENT expr                                            # Assignment
     ;
 
 // operators - explicit tokens
 // rule labels - for each label a separate visit method is generated
 expr
-    :    LEFT_PAREN expr RIGHT_PAREN                        # ExprParen
-    |    op=NEGATIVE expr                   # Negative
+    :    LEFT_PAREN expr RIGHT_PAREN                                # ExprParen
+    |    op=NEGATIVE expr                                           # Negative
     |    expr op=(MULTIPLICATION|DIVISION) expr                     # BinaryOperation
-    |    expr op=(ADDITION|SUBTRACTION) expr                     # BinaryOperation
-    |    NUMBER                                 # Number
-    |    VARIABLE                                     # Identifier
+    |    expr op=(ADDITION|SUBTRACTION) expr                        # BinaryOperation
+    |    NUMBER                                                     # Number
+    |    VARIABLE                                                   # Identifier
     ;
 
 logic
-    :   LEFT_PAREN logic RIGHT_PAREN                        # LogicParen
+    :   LEFT_PAREN logic RIGHT_PAREN           # LogicParen
     |   op=NOT logic                           # Negation
     |   logic op=AND logic                     # BinaryLogicOperation
     |   XOR_PREFIX logic op=XOR logic          # BinaryLogicOperation
@@ -44,6 +47,14 @@ logic
     |   TRUE                                   # LogicalValue
     |   FALSE                                  # LogicalValue
     |   VARIABLE                               # LogicIdentifier
+    ;
+
+type
+    : INT | BOOL | STRING | CHAR
+    ;
+
+input_type
+    : type | LINE | WORD
     ;
 
 
@@ -101,6 +112,27 @@ WHICH_WILL_BE
     :   ', '? 'ktoré bude'
     ;
 
+
+// Input/output
+LOAD
+    :   'Načítaj'
+    ;
+
+INTO_VAR
+    :   'do premennej'
+    ;
+
+PRINT
+    :   'Vypíš'
+    ;
+
+AND_PRINT_NEWLINE
+    :   'a odriadkuj'
+    ;
+
+PRINT_NEWLINE
+    :   'Odriadkuj'
+    ;
 
 // Math operations
 
@@ -204,7 +236,6 @@ ELSE
 
 
 // Types
-
 INT
     : 'celé číslo'
     ;
@@ -219,6 +250,14 @@ STRING
 
 CHAR
     : 'znak'
+    ;
+
+LINE
+    : 'riadok'
+    ;
+
+WORD
+    : 'slovo'
     ;
 
 // Other stuff (very proffesional naming)

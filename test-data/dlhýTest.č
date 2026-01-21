@@ -18,7 +18,7 @@ Majme celé číslo Ľ, ktoré bude 7 plus 8.
 logická bude pravda.
 Ečko bude buď lož alebo pravda a lož.
 Fko bude buď lož alebo (pravda či lož).
-Gčko bude Ečko či Fko.
+Gčko bude Ečko či Fko či Hčko.
 
 (porovnávanie)
 Hčko platí keď 2 je väčšie ako 3.
@@ -32,3 +32,9 @@ Ak opak hodnoty, tak číslo bude 2 plus 2.
 
 Ak výška je menšia ako šírka tak odpoveď bude 1.
 Ak buď (buď Ačko je menšie ako 3 alebo Bčko je väčšie ako 5) a Ičko, alebo Gčko tak odpoveď bude 1.
+
+(Vstup a výstup)
+Načítaj celé číslo do premennej Ačko.
+Vypíš 6 plus 7 krát 8.
+Vypíš Ačko a odriadkuj.
+Vypíš Ečko a Fko a odriadkuj.
