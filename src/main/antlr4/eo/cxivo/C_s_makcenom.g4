@@ -10,29 +10,28 @@ initial
     ;
 
 statement
-    :    functionDefinition EOF?
-    |    statementBody SENTENCE_END? EOF?
-    |    COMMENT EOF?
-    |    NEWLINE
+    :    functionDefinition EOF?                # StatementFunction
+    |    statementBody SENTENCE_END? EOF?       # StatementWithBody
+    |    COMMENT EOF?                           # Comment
+    |    NEWLINE                                # Newline
     ;
 
 statementBody
-    :   LET type VARIABLE (WHICH_WILL_BE expr)?      # Declaration
-    |   IF logic_expr COMMA? THEN (statementBody | block) ELSE (statementBody | block)         # Conditional
-    |   IF logic_expr COMMA? THEN (statementBody | block)                                  # Conditional
-    |   'Opakuj pre' VARIABLE 'od' num_expr 'po' num_expr ':' (statementBody | block)          # ForLoop
-    |   'Opakuj od' num_expr 'po' num_expr ':' (statementBody | block)                         # ForLoop
-    |   'Kým' logic_expr THEN (statementBody | block)                                          # WhileLoop
+    :   LET var_type=type VARIABLE (WHICH_WILL_BE expr)?                                                             # Declaration
+    |   IF condition=logic_expr COMMA? THEN (statementBody | block) (ELSE (statementBody | block))?         # Conditional
+    |   'Opakuj pre' varName=VARIABLE 'od' lower=num_expr 'po' upper=num_expr ':' (statementBody | block)   # ForLoop
+    |   'Opakuj od' lower=num_expr 'po' upper=num_expr ':' (statementBody | block)                          # ForLoop
+    |   'Kým' condition=logic_expr THEN (statementBody | block)                                             # WhileLoop
     |   LOAD input_type INTO_VAR VARIABLE                                   # Input
-    |   PRINT (expr) AND_PRINT_NEWLINE?                             # Output
+    |   PRINT (expr) AND_PRINT_NEWLINE?                                     # Output
     |   PRINT_NEWLINE                                                       # PrintNewLine
     |   END_PROGRAM                     # EndProgram
     |   BREAK                           # Break
     |   CONTINUE                        # Continue
     |   DONE                            # Return
     |   RETURN expr                     # Return
-    |   VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN  # ProcedureCall
-    |   id (ASSIGNMENT | LOGIC_ASSIGNMENT) logic_expr                      # Assignment
+    |   VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN                  # ProcedureCall
+    |   id (ASSIGNMENT | LOGIC_ASSIGNMENT) logic_expr                       # Assignment
     |   id ASSIGNMENT (num_expr | array_expr | TEXT | VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN)  # Assignment
     ;
 
@@ -58,23 +57,23 @@ expr: num_expr | logic_expr | array_expr | TEXT;
 num_expr
     :    LEFT_PAREN num_expr RIGHT_PAREN                                # ExprParen
     |    op=NEGATIVE num_expr                                           # Negative
-    |    num_expr op=(MULTIPLICATION|DIVISION) num_expr                 # BinaryOperation
-    |    num_expr op=(ADDITION|SUBTRACTION) num_expr                    # BinaryOperation
+    |    left=num_expr op=(MULTIPLICATION|DIVISION) right=num_expr      # BinaryOperation
+    |    left=num_expr op=(ADDITION|SUBTRACTION) right=num_expr         # BinaryOperation
     |    NUMBER                                                         # Number
     |    ('dĺžka zoznamu' | 'dĺžka textu') VARIABLE                     # ArraySize
     |    id                                                             # Identifier
     ;
 
 logic_expr
-    :   LEFT_PAREN logic_expr RIGHT_PAREN                   # LogicParen
-    |   op=NOT logic_expr                                   # Negation
-    |   logic_expr op=AND logic_expr                        # BinaryLogicOperation
-    |   XOR_PREFIX logic_expr op=XOR logic_expr             # BinaryLogicOperation
-    |   logic_expr op=OR logic_expr                         # BinaryLogicOperation
-    |   num_expr op=(LESS_THAN | MORE_THAN | LESS_THAN_OR_EQUAL | MORE_THAN_OR_EQUAL | EQUALS | NOT_EQUALS) num_expr    # BinaryRelationOperation
-    |   TRUE                                                # LogicalValue
-    |   FALSE                                               # LogicalValue
-    |   id                                                  # LogicIdentifier
+    :   LEFT_PAREN logic_expr RIGHT_PAREN                              # LogicParen
+    |   op=NOT logic_expr                                              # Negation
+    |   left=logic_expr op=AND right=logic_expr                        # BinaryLogicOperation
+    |   XOR_PREFIX left=logic_expr op=XOR right=logic_expr             # BinaryLogicOperation
+    |   left=logic_expr op=OR right=logic_expr                         # BinaryLogicOperation
+    |   left=num_expr op=(LESS_THAN | MORE_THAN | LESS_THAN_OR_EQUAL | MORE_THAN_OR_EQUAL | EQUALS | NOT_EQUALS) right=num_expr    # BinaryRelationOperation
+    |   TRUE                                                            # LogicalValue
+    |   FALSE                                                           # LogicalValue
+    |   id                                                              # LogicIdentifier
     ;
 
 array_expr
@@ -351,7 +350,7 @@ COMMA
     ;
 
 NUMBER
-    :    DIGIT+
+    :    '-'? DIGIT+
     ;
 
 VARIABLE

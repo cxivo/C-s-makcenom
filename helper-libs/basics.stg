@@ -1,0 +1,125 @@
+group LLVM;
+
+import "inputAndOutput.stg"
+
+// the base of every program
+base(code) ::= <<
+; system
+declare i32 @printf(ptr, ...)
+declare i32 @putchar(i32)
+declare ptr @malloc(i32)
+
+; library
+declare i32 @print_int(i32)
+declare i32 @print_true()
+declare i32 @print_false()
+declare i32 @print_newline()
+declare i32 @print_string(ptr)
+
+define i32 @main() {
+start:
+<code>
+
+ret i32 0
+}
+>>
+
+// New variable declaration and maybe assigment
+DeclarationAndAssignment(compute_value, value_register, has_value, memory_register, type) ::= <<
+<compute_value>  ; if empty then uninitialized
+<memory_register> = alloca <type>
+<if(has_value)>
+store <type> <value_register>, <type>* <memory_register>
+<endif>
+>>
+
+// Assign to an existing integer variable
+Assignment(compute_value, value_register, memory_register, type) ::= <<
+<compute_value>
+store <type> <value_register>, <type>* <memory_register>
+>>
+
+// Declare an array
+ArrayDeclaration(memory_register, label_id) ::= <<
+%array_info_size_<label_id> = add
+<memory_register> = call ptr @malloc(i32 4)
+>>
+
+// For loop
+For(iter_memory_register, iter_value_register, cycle_end_register, aux_register, lower, upper, cycle_body, label_id) ::= <<
+<iter_memory_register> = alloca i32
+store i32 <lower>, i32* <iter_memory_register>
+br label %cycle<label_id>
+
+cycle<label_id>:
+<iter_value_register> = load i32, i32* <iter_memory_register>
+<cycle_end_register> = icmp sgt i32 <iter_value_register>, <upper>
+br i1 <cycle_end_register>, label %endcycle<label_id>, label %iter<label_id>
+
+iter<label_id>:
+<cycle_body>
+<aux_register> = add i32 <iter_value_register>, 1
+store i32 <aux_register>, i32* <iter_memory_register>
+br label %cycle<label_id>
+
+endcycle<label_id>:
+store i32 0, i32* <iter_memory_register>
+>>
+
+// If statement
+// <cmp_register> = icmp <relation> i32 <value1_register>, <value2_register>
+IfThenElse(compute_boolean, boolean_register, if_true, if_false, label_id) ::= <<
+<compute_boolean>
+br i1 <boolean_register>, label %iftrue<label_id>, label %iffalse<label_id>
+
+iftrue<label_id>:
+<if_true>
+br label %fi<label_id>
+
+iffalse<label_id>:
+<if_false>
+br label %fi<label_id>
+
+fi<label_id>:
+>>
+
+IfThen(compute_boolean, boolean_register, if_true, label_id) ::= <<
+<compute_boolean>
+br i1 <boolean_register>, label %iftrue<label_id>, label %fi<label_id>
+
+iftrue<label_id>:
+<if_true>
+br label %fi<label_id>
+
+fi<label_id>:
+>>
+
+// binary operations between numbers
+NumBinOp(compute_left, left_register, compute_right, right_register, return_register, instruction) ::= <<
+<compute_left>
+<compute_right>
+<return_register> = <instruction> i32 <left_register>, <right_register>
+>>
+
+// binary operations on logic values
+LogicBinOp(compute_left, left_register, compute_right, right_register, return_register, instruction) ::= <<
+<compute_left>
+<compute_right>
+<return_register> = <instruction> i1 <left_register>, <right_register>
+>>
+
+// negative expression
+Negative(compute_value, value_register, return_register) ::= <<
+<compute_value>
+<return_register> = mul i32 <value_register>, -1
+>>
+
+// plain integer
+Number(const_value, return_register) ::= <<
+<return_register> = add i32 <const_value>, 0
+>>
+
+// variable
+Identifier(memory_register, return_register) ::= <<
+<return_register> = load i32, i32* <memory_register>
+>>

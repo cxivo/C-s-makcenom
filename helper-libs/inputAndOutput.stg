@@ -1,0 +1,36 @@
+group LLVM;
+
+// Printing an integer
+PrintNumber(compute_value, value_register) ::= <<
+<compute_value>
+call i32 @print_int(i32 <value_register>)
+>>
+
+// Printing a boolean
+PrintBoolean(compute_value, value_register, label_id) ::= <<
+<compute_value>
+br <value_register>, label %printtrue<label_id>, label %printfalse<label_id>
+
+printtrue<label_id>:
+    call i32 @print_true()
+    br %endprint<label_id>
+
+printfalse<label_id>:
+    call i32 @print_false()
+    br %endprint<label_id>
+
+endprint<label_id>:
+>>
+
+// Printing a single character
+PrintChar(compute_value, value_register, label_id) ::= <<
+<compute_value>
+%char_<label_id> = zext i8 <value_register> to i32
+call i32 @putchar(i32 char_<label_id>)
+>>
+
+// Printing a text TODO
+PrintString(compute_value, value_register) ::= <<
+<compute_value>
+call i32 @printf(ptr <value_register>)
+>>
