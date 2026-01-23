@@ -124,19 +124,6 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     }
 
     @Override
-    public CodeFragment visitAssignment(C_s_makcenomParser.AssignmentContext ctx) {
-        ST assignmentTemplate = templates.getInstanceOf("Assignment");
-
-        // get the destination
-        CodeFragment destination = visit(ctx.id());
-
-        // allocate space for it
-
-        // calculate initial value of the variable
-        return null;
-    }
-
-    @Override
     public CodeFragment visitConditional(C_s_makcenomParser.ConditionalContext ctx) {
         return null;
     }
@@ -188,6 +175,12 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitProcedureCall(C_s_makcenomParser.ProcedureCallContext ctx) {
+        return null;
+    }
+
+    @Override
+    public CodeFragment visitAssignment(C_s_makcenomParser.AssignmentContext ctx) {
+
         return null;
     }
 

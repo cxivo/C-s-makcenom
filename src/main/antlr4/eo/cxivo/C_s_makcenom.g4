@@ -31,8 +31,8 @@ statementBody
     |   DONE                            # Return
     |   RETURN expr                     # Return
     |   VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN                  # ProcedureCall
-    |   id (ASSIGNMENT | LOGIC_ASSIGNMENT) logic_expr                       # Assignment
-    |   id ASSIGNMENT (num_expr | array_expr | TEXT | VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN)  # Assignment
+    |   id op=LOGIC_ASSIGNMENT logic_expr                           # Assignment
+    |   id op=ASSIGNMENT expr                                       # Assignment
     ;
 
 functionDefinition
@@ -52,7 +52,7 @@ id
     |   VARIABLE                                                                                   # Variable
     ;
 
-expr: num_expr | logic_expr | array_expr | TEXT;
+expr: num_expr | logic_expr | array_expr | TEXT | VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN;
 
 num_expr
     :    LEFT_PAREN num_expr RIGHT_PAREN                                # ExprParen
