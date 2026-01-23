@@ -1,9 +1,23 @@
 package eo.cxivo;
 
 public class VariableInfo {
-    public String nameInCode;
+    public enum Type {
+        BOOL,
+        CHAR,
+        INT
+    }
 
-    public VariableInfo(String nameInCode) {
+    public String nameInCode;
+    public Type type;
+    public int arrayDimension = 0;  // 0 for regular variables, otherwise is the dimension of the array
+
+    public VariableInfo(String nameInCode, Type type) {
         this.nameInCode = nameInCode;
+        this.type = type;
+    }
+
+    public VariableInfo(String nameInCode, Type type, int dimension) {
+        this(nameInCode, type);
+        this.arrayDimension = dimension;
     }
 }

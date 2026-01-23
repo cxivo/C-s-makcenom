@@ -13,8 +13,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     STGroup templates = new STGroupFile("helper-libs/basics.stg");
 
     // new HashSet get pushed with every new scope
-    private Stack<HashMap<String, VariableInfo>> variables = new Stack<>();
-    private ErrorCollector errorCollector;
+    private final Stack<HashMap<String, VariableInfo>> variables = new Stack<>();
+    private final ErrorCollector errorCollector;
     private int registerIndex = 0;
     private int labelIndex = 0;
 
@@ -26,21 +26,22 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         }
     }
 
-    /* generovanie unikatnych labelov pre bloky
-       if - iftrue0, iffalse0, fi0, iftrue1, iffalse1, fi1,...
-       for - cycle0, iter0, endcycle0, cycle1, iter1, endcycle1, ...
-     */
     private String generateNewLabel() {
         return Integer.toString(labelIndex++);
     }
 
 
     private boolean isVariableNameUsed(String name) {
-        boolean used = false;
-        for (HashMap<String, VariableInfo> map : variables) {
-            used = used || map.containsKey(name);
+        return variables.stream().anyMatch(map -> map.containsKey(name));
+    }
+
+    private VariableInfo getVariableInfo(String name) {
+        for (HashMap<String, VariableInfo> map: variables) {
+            if (map.containsKey(name)) {
+                return map.get(name);
+            }
         }
-        return used;
+        return null;
     }
 
     public LanguageVisitor(ErrorCollector errorCollector) {
@@ -99,19 +100,27 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         if (isVariableNameUsed(variableName)) {
             errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
                     + ": Názov \"" + variableName + "\" je už použitý, buďte kreatívnejší pri výbere názvu");
+            return new CodeFragment();
         }
 
+        VariableInfo.Type type = null;
         if (ctx.var_type.INT() != null) {
             // i32
+            type = VariableInfo.Type.INT;
             declarationTemplate.add("type", "i32");
-        } else if (ctx.var_type.BOOL() != null || ctx.var_type.CHAR() != null) {
+        } else if (ctx.var_type.BOOL() != null) {
             // i8
+            type = VariableInfo.Type.BOOL;
+            declarationTemplate.add("type", "i8");
+        } else if (ctx.var_type.CHAR() != null) {
+            // i8
+            type = VariableInfo.Type.CHAR;
             declarationTemplate.add("type", "i8");
         }
 
         // allocate space for it
         String registerName = generateUniqueRegisterName(variableName);
-        variables.peek().put(variableName, new VariableInfo(registerName));
+        variables.peek().put(variableName, new VariableInfo(registerName, type));
 
         declarationTemplate.add("memory_register", registerName);
 
@@ -183,15 +192,57 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     }
 
     @Override
-    public CodeFragment visitAssignment(C_s_makcenomParser.AssignmentContext ctx) {
-        ST assignmentTemplate = templates.getInstanceOf("DeclarationAndAssignment");
+    public CodeFragment visitVariableAssignment(C_s_makcenomParser.VariableAssignmentContext ctx) {
+        ST variableAssignmentTemplate = templates.getInstanceOf("VariableAssignment");
 
-        CodeFragment destination = visit(ctx.id());
-
-        if (isVariableNameUsed(variableName)) {
+        // check if name is defined
+        String variableName = ctx.VARIABLE().getText();
+        if (!isVariableNameUsed(variableName)) {
             errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
-                    + ": Názov \"" + variableName + "\" je už použitý, buďte kreatívnejší pri výbere názvu");
+                    + ": Neznáma premenná \"" + variableName + "\" (inak, v Č treba pred použitím deklarovať)");
+            return new CodeFragment();
         }
+
+        // get the location of the variable, so stuff can be stored inside
+        VariableInfo info = getVariableInfo(variableName);
+        assert info != null;
+        variableAssignmentTemplate.add("memory_register", info.nameInCode);
+
+        // do different things based on the type
+        String llvm_type = switch (info.type) {
+            case BOOL, CHAR -> "i8";
+            case INT -> "i32";
+        };
+
+        // pointer if it's an array
+        if (info.arrayDimension > 0) {
+            llvm_type = "ptr";
+            // TODO array
+        }
+        variableAssignmentTemplate.add("type", llvm_type);
+
+
+        // code for computing the value
+        CodeFragment value;
+        if (ctx.logic_expr() != null) {
+            value = visit(ctx.logic_expr());
+        } else {
+            value = visit(ctx.expr());
+        }
+
+        variableAssignmentTemplate.add("compute_value", value);
+        variableAssignmentTemplate.add("value_register", value.resultRegisterName);
+
+        return new CodeFragment(variableAssignmentTemplate.render());
+    }
+
+    @Override
+    public CodeFragment visitArrayElementAssignment(C_s_makcenomParser.ArrayElementAssignmentContext ctx) {
+        return null;
+    }
+
+    @Override
+    public CodeFragment visitCharOfTextAssignment(C_s_makcenomParser.CharOfTextAssignmentContext ctx) {
         return null;
     }
 
@@ -217,12 +268,22 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitVariable(C_s_makcenomParser.VariableContext ctx) {
+
+
         return null;
     }
 
     @Override
     public CodeFragment visitExpr(C_s_makcenomParser.ExprContext ctx) {
-        return null;
+        CodeFragment codeFragment = null;
+
+        if (ctx.num_expr() != null) {
+            codeFragment = visit(ctx.num_expr());
+        } else if (ctx.logic_expr() != null) {
+            codeFragment = visit(ctx.logic_expr());
+        } // TODO
+
+        return codeFragment;
     }
 
     @Override
@@ -242,7 +303,10 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitNumber(C_s_makcenomParser.NumberContext ctx) {
-        return null;
+        // hilarious hack: we place the values as the "register", because it works with our templates :P
+        CodeFragment codeFragment = new CodeFragment("");
+        codeFragment.resultRegisterName = ctx.NUMBER().getText();
+        return codeFragment;
     }
 
     @Override

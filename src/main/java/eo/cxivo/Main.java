@@ -21,10 +21,18 @@ public class Main {
 
         ParseTree tree = parser.initial();
 
-        LanguageVisitor visitor = new LanguageVisitor();
+        // parse code
+        ErrorCollector errorCollector = new ErrorCollector();
+        LanguageVisitor visitor = new LanguageVisitor(errorCollector);
 
+        // the grand visit
         CodeFragment codeFragment = visitor.visit(tree);
-        out.print(codeFragment.toString());
-    }
 
+        // how did we do?
+        if (errorCollector.getErrorCount() == 0) {
+            out.print(codeFragment.toString());
+        } else {
+            System.err.println(errorCollector);
+        }
+    }
 }

@@ -26,7 +26,8 @@ ret i32 0
 
 // New variable declaration and maybe assigment
 DeclarationAndAssignment(compute_value, value_register, has_value, memory_register, type) ::= <<
-<compute_value>  ; if empty then uninitialized
+; variable initialization
+<compute_value>
 <memory_register> = alloca <type>
 <if(has_value)>
 store <type> <value_register>, <type>* <memory_register>
@@ -34,10 +35,11 @@ store <type> <value_register>, <type>* <memory_register>
 >>
 
 // Assign to an existing integer variable
-Assignment(compute_value, value_register, memory_register, type) ::= <<
+VariableAssignment(compute_value, value_register, memory_register, type) ::= <<
 <compute_value>
 store <type> <value_register>, <type>* <memory_register>
 >>
+
 
 // Declare an array
 ArrayDeclaration(memory_register, label_id) ::= <<
