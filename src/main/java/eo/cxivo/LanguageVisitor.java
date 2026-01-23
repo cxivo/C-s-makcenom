@@ -14,9 +14,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     // new HashSet get pushed with every new scope
     private Stack<HashMap<String, VariableInfo>> variables = new Stack<>();
-
+    private ErrorCollector errorCollector;
     private int registerIndex = 0;
-
     private int labelIndex = 0;
 
     private String generateUniqueRegisterName(String originalName) {
@@ -42,6 +41,10 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             used = used || map.containsKey(name);
         }
         return used;
+    }
+
+    public LanguageVisitor(ErrorCollector errorCollector) {
+        this.errorCollector = errorCollector;
     }
 
     @Override
@@ -94,7 +97,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         // check if name unsued
         String variableName = ctx.VARIABLE().getText();
         if (isVariableNameUsed(variableName)) {
-            //throw new Exception("Názov \"" + variableName + "\" je už použitý ");
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Názov \"" + variableName + "\" je už použitý, buďte kreatívnejší pri výbere názvu");
         }
 
         if (ctx.var_type.INT() != null) {
@@ -180,7 +184,14 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitAssignment(C_s_makcenomParser.AssignmentContext ctx) {
+        ST assignmentTemplate = templates.getInstanceOf("DeclarationAndAssignment");
 
+        CodeFragment destination = visit(ctx.id());
+
+        if (isVariableNameUsed(variableName)) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Názov \"" + variableName + "\" je už použitý, buďte kreatívnejší pri výbere názvu");
+        }
         return null;
     }
 
