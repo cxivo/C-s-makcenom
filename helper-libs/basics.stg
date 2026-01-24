@@ -40,8 +40,12 @@ VariableAssignment(compute_value, value_register, memory_register, type) ::= <<
 store <type> <value_register>, <type>* <memory_register>
 >>
 
+GetFromVariable(return_register, memory_register, type) ::= <<
+<return_register> = load <type>, <type>* <memory_register>
+>>
 
-// Declare an array
+
+// Declare an array TODO
 ArrayDeclaration(memory_register, label_id) ::= <<
 %array_info_size_<label_id> = add
 <memory_register> = call ptr @malloc(i32 4)

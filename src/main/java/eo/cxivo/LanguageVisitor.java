@@ -268,9 +268,38 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitVariable(C_s_makcenomParser.VariableContext ctx) {
+        ST getFromVariableTemplate = templates.getInstanceOf("GetFromVariable");
 
+        // check if name is defined
+        String variableName = ctx.VARIABLE().getText();
+        if (!isVariableNameUsed(variableName)) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Neznáma premenná \"" + variableName + "\", treba ju definovať");
+            return new CodeFragment();
+        }
 
-        return null;
+        // get the location of the variable, so stuff can be stored inside
+        VariableInfo info = getVariableInfo(variableName);
+        assert info != null;
+        getFromVariableTemplate.add("memory_register", info.nameInCode);
+
+        // do different things based on the type
+        String llvm_type = switch (info.type) {
+            case BOOL, CHAR -> "i8";
+            case INT -> "i32";
+        };
+
+        // pointer if it's an array
+        if (info.arrayDimension > 0) {
+            llvm_type = "ptr";
+            // TODO array
+        }
+
+        getFromVariableTemplate.add("type", llvm_type);
+        String uniqueName = generateUniqueRegisterName("");
+        getFromVariableTemplate.add("return_register", uniqueName);
+
+        return new CodeFragment(getFromVariableTemplate.render(), uniqueName);
     }
 
     @Override
@@ -293,7 +322,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitIdentifier(C_s_makcenomParser.IdentifierContext ctx) {
-        return null;
+        return visit(ctx.id());
     }
 
     @Override
