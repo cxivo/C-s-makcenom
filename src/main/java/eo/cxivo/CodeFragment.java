@@ -14,6 +14,11 @@ public class CodeFragment {
         this.code = code;
     }
 
+    public CodeFragment(String code, String resultRegisterName) {
+        this(code);
+        this.resultRegisterName = resultRegisterName;
+    }
+
     @Override
     public String toString() {
         return code;

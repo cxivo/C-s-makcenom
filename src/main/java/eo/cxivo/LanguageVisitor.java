@@ -288,7 +288,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitExprParen(C_s_makcenomParser.ExprParenContext ctx) {
-        return null;
+        return visit(ctx.num_expr());
     }
 
     @Override
@@ -298,20 +298,57 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitNegative(C_s_makcenomParser.NegativeContext ctx) {
-        return null;
+        ST negativeTemplate = templates.getInstanceOf("Negative");
+
+        CodeFragment inner = visit(ctx.num_expr());
+        negativeTemplate.add("compute_value", inner);
+        negativeTemplate.add("value_register", inner.resultRegisterName);
+        String uniqueName = generateUniqueRegisterName("");
+        negativeTemplate.add("return_register", uniqueName);
+
+        return new CodeFragment(negativeTemplate.render(), uniqueName);
     }
 
     @Override
     public CodeFragment visitNumber(C_s_makcenomParser.NumberContext ctx) {
         // hilarious hack: we place the values as the "register", because it works with our templates :P
-        CodeFragment codeFragment = new CodeFragment("");
-        codeFragment.resultRegisterName = ctx.NUMBER().getText();
-        return codeFragment;
+        return new CodeFragment("", ctx.NUMBER().getText());
     }
 
     @Override
     public CodeFragment visitBinaryOperation(C_s_makcenomParser.BinaryOperationContext ctx) {
-        return null;
+        ST numBinOpTemplate = templates.getInstanceOf("NumBinOp");
+
+        // find out which operation we're doing
+        String operator = switch(ctx.op.getType()) {
+            case C_s_makcenomParser.MULTIPLICATION -> "mul";
+            case C_s_makcenomParser.DIVISION -> "sdiv";
+            case C_s_makcenomParser.ADDITION -> "add";
+            case C_s_makcenomParser.SUBTRACTION -> "sub";
+            default -> "";
+        };
+
+        // not sure if an unknown operator can happen, but I trust that someone will make this error appear
+        if (operator.isEmpty()) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Neznáma matematická operácia... netuším, ako sa vám to podarilo");
+            return new CodeFragment();
+        }
+
+        numBinOpTemplate.add("instruction", operator);
+
+        CodeFragment left = visit(ctx.left);
+        CodeFragment right = visit(ctx.right);
+
+        numBinOpTemplate.add("compute_left", left);
+        numBinOpTemplate.add("compute_right", right);
+        numBinOpTemplate.add("left_register", left.resultRegisterName);
+        numBinOpTemplate.add("right_register", right.resultRegisterName);
+
+        String uniqueName = generateUniqueRegisterName("");
+        numBinOpTemplate.add("return_register", uniqueName);
+
+        return new CodeFragment(numBinOpTemplate.render(), uniqueName);
     }
 
     @Override
