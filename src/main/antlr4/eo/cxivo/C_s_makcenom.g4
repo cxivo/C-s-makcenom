@@ -57,7 +57,7 @@ id
     |   VARIABLE                                                                                   # Variable
     ;
 
-expr: num_expr | logic_expr | array_expr | TEXT | VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN;
+expr: num_expr | logic_expr | array_expr | TEXT | CHARACTER | VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN;
 
 num_expr
     :    LEFT_PAREN num_expr RIGHT_PAREN                                # ExprParen
@@ -360,6 +360,10 @@ NUMBER
 
 VARIABLE
     :    NameStartChar NameChar*
+    ;
+
+CHARACTER
+    : '\'' ( . | '\\' . ) '\''
     ;
 
 TEXT
