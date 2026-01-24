@@ -9,7 +9,7 @@ public class Main {
     // I won't lie, I can't really do this any differently
     public static void main(String[] args) throws Exception {
         CharStream in = CharStreams.fromFileName("test-data/krátkyTest.č");
-        PrintStream out = new PrintStream(new FileOutputStream("program.ll"));  //System.out;
+        PrintStream out = new PrintStream(new FileOutputStream("output/program.ll"));  //System.out;
 
         eo.cxivo.C_s_makcenomLexer lexer = new eo.cxivo.C_s_makcenomLexer(in);
 

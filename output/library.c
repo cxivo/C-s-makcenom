@@ -18,8 +18,13 @@ int *read_int_array(int n) {
 }
 
 // output
+int print_int(int i) {
+    printf("%d", i);
+    return 0;
+}
+
 int print_string(char* string) {
-    printf(string);
+    printf("%s", string);
     return 0;
 }
 
@@ -64,7 +69,7 @@ void** allocate_pointer_array(int n) {
 }
 
 void** reallocate_pointer_array(void** ptr, int n) {
-    return malloc(ptr, n * sizeof(void*));
+    return realloc(ptr, n * sizeof(void*));
 }
 
 void see_you_later_allocator(void* p) {

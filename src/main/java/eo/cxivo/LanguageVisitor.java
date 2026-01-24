@@ -158,7 +158,19 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitOutput(C_s_makcenomParser.OutputContext ctx) {
-        return null;
+        ST outputTemplate = null;
+
+        CodeFragment codeFragment = visit(ctx.expr());
+
+        // what kind of print to use
+        if (ctx.expr().num_expr() != null) {
+            outputTemplate = templates.getInstanceOf("PrintNumber");
+            outputTemplate.add("compute_value", codeFragment);
+            outputTemplate.add("value_register", codeFragment.resultRegisterName);
+        } // TODO
+
+        assert outputTemplate != null;
+        return new CodeFragment(outputTemplate.render());
     }
 
     @Override
