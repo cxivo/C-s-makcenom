@@ -1,9 +1,17 @@
 group LLVM;
 
+// Newline
+PrintNewline() ::= <<
+call i32 @print_newline()
+>>
+
 // Printing an integer
-PrintNumber(compute_value, value_register) ::= <<
+PrintNumber(compute_value, value_register, newline) ::= <<
 <compute_value>
 call i32 @print_int(i32 <value_register>)
+<if (newline)>
+    call i32 @print_newline()
+<endif>
 >>
 
 // Printing a boolean

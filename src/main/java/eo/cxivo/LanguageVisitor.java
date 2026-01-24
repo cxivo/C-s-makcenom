@@ -1,10 +1,10 @@
 package eo.cxivo;
 
 import org.antlr.v4.runtime.tree.ErrorNode;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.RuleNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.stringtemplate.v4.*;
+import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.Stack;
 
@@ -170,12 +170,18 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         } // TODO
 
         assert outputTemplate != null;
+
+        // also add a newline
+        if (ctx.AND_PRINT_NEWLINE() != null) {
+            outputTemplate.add("newline", 1);
+        }
         return new CodeFragment(outputTemplate.render());
     }
 
     @Override
     public CodeFragment visitPrintNewLine(C_s_makcenomParser.PrintNewLineContext ctx) {
-        return null;
+        // literally just output a string, so this is a bit overcomplicated... but whatever
+        return new CodeFragment(templates.getInstanceOf("PrintNewline").render());
     }
 
     @Override
