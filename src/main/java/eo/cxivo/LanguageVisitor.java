@@ -18,11 +18,16 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     private int registerIndex = 0;
     private int labelIndex = 0;
 
+    // from https://www.baeldung.com/java-remove-accents-from-text
+    static String toLowerCaseASCII(String input) {
+        return Normalizer.normalize(input.toLowerCase(), Normalizer.Form.NFKD).replaceAll("\\p{M}", "");
+    }
+
     private String generateUniqueRegisterName(String originalName) {
         if (originalName.isEmpty()) {
             return "%reg_" + registerIndex++;
         } else {
-            return "%" + originalName.toLowerCase() + "_" + registerIndex++;
+            return "%" + toLowerCaseASCII(originalName) + "_" + registerIndex++;
         }
     }
 
