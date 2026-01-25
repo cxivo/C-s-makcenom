@@ -1,8 +1,5 @@
 package eo.cxivo;
 
-import org.antlr.v4.runtime.tree.ErrorNode;
-import org.antlr.v4.runtime.tree.RuleNode;
-import org.antlr.v4.runtime.tree.TerminalNode;
 import org.stringtemplate.v4.*;
 import java.text.Normalizer;
 import java.util.HashMap;
@@ -52,6 +49,10 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     public LanguageVisitor(ErrorCollector errorCollector) {
         this.errorCollector = errorCollector;
     }
+
+    ///////////////////////////////////////////////
+    /// Overriden methods
+    ///////////////////////////////////////////////
 
     @Override
     public CodeFragment visitInitial(C_s_makcenomParser.InitialContext ctx) {
@@ -106,9 +107,9 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             type = VariableInfo.Type.INT;
             declarationTemplate.add("type", "i32");
         } else if (ctx.var_type.BOOL() != null) {
-            // i8
+            // i1
             type = VariableInfo.Type.BOOL;
-            declarationTemplate.add("type", "i8");
+            declarationTemplate.add("type", "i1");
         } else if (ctx.var_type.CHAR() != null) {
             // i8
             type = VariableInfo.Type.CHAR;
@@ -252,7 +253,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         // do different things based on the type
         String llvm_type = switch (info.type) {
-            case BOOL, CHAR -> "i8";
+            case BOOL -> "i1";
+            case CHAR -> "i8";
             case INT -> "i32";
         };
 
@@ -339,7 +341,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         // do different things based on the type
         String llvm_type = switch (info.type) {
-            case BOOL, CHAR -> "i8";
+            case BOOL -> "i1";
+            case CHAR -> "i8";
             case INT -> "i32";
         };
 
@@ -401,7 +404,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitBinaryOperation(C_s_makcenomParser.BinaryOperationContext ctx) {
-        ST numBinOpTemplate = templates.getInstanceOf("NumBinOp");
+        ST BinOpTemplate = templates.getInstanceOf("BinOp");
+        BinOpTemplate.add("type", "i32");
 
         // find out which operation we're doing
         String operator = switch(ctx.op.getType()) {
@@ -419,20 +423,20 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             return new CodeFragment();
         }
 
-        numBinOpTemplate.add("instruction", operator);
+        BinOpTemplate.add("instruction", operator);
 
         CodeFragment left = visit(ctx.left);
         CodeFragment right = visit(ctx.right);
 
-        numBinOpTemplate.add("compute_left", left);
-        numBinOpTemplate.add("compute_right", right);
-        numBinOpTemplate.add("left_register", left.resultRegisterName);
-        numBinOpTemplate.add("right_register", right.resultRegisterName);
+        BinOpTemplate.add("compute_left", left);
+        BinOpTemplate.add("compute_right", right);
+        BinOpTemplate.add("left_register", left.resultRegisterName);
+        BinOpTemplate.add("right_register", right.resultRegisterName);
 
         String uniqueName = generateUniqueRegisterName("");
-        numBinOpTemplate.add("return_register", uniqueName);
+        BinOpTemplate.add("return_register", uniqueName);
 
-        return new CodeFragment(numBinOpTemplate.render(), uniqueName);
+        return new CodeFragment(BinOpTemplate.render(), uniqueName);
     }
 
     @Override
@@ -458,17 +462,49 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitBinaryLogicOperation(C_s_makcenomParser.BinaryLogicOperationContext ctx) {
-        return null;
+        ST BinOpTemplate = templates.getInstanceOf("BinOp");
+        BinOpTemplate.add("type", "i1");
+
+        // find out which operation we're doing
+        String operator = switch(ctx.op.getType()) {
+            case C_s_makcenomParser.AND -> "and";
+            case C_s_makcenomParser.OR -> "or";
+            case C_s_makcenomParser.XOR -> "xor";
+            default -> "";
+        };
+
+        // not sure if an unknown operator can happen, but I trust that someone will make this error appear
+        if (operator.isEmpty()) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Neznáma logická operácia... môžeme povedať, že je to... nelogické :P");
+            return new CodeFragment();
+        }
+
+        BinOpTemplate.add("instruction", operator);
+
+        CodeFragment left = visit(ctx.left);
+        CodeFragment right = visit(ctx.right);
+
+        BinOpTemplate.add("compute_left", left);
+        BinOpTemplate.add("compute_right", right);
+        BinOpTemplate.add("left_register", left.resultRegisterName);
+        BinOpTemplate.add("right_register", right.resultRegisterName);
+
+        String uniqueName = generateUniqueRegisterName("");
+        BinOpTemplate.add("return_register", uniqueName);
+
+        return new CodeFragment(BinOpTemplate.render(), uniqueName);
     }
 
     @Override
     public CodeFragment visitLogicIdentifier(C_s_makcenomParser.LogicIdentifierContext ctx) {
-        return null;
+        // TODO
+        return visit(ctx.id());
     }
 
     @Override
     public CodeFragment visitLogicParen(C_s_makcenomParser.LogicParenContext ctx) {
-        return null;
+        return visit(ctx.logic_expr());
     }
 
     @Override
@@ -488,21 +524,6 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitOf_type(C_s_makcenomParser.Of_typeContext ctx) {
-        return null;
-    }
-
-    @Override
-    public CodeFragment visitChildren(RuleNode ruleNode) {
-        return null;
-    }
-
-    @Override
-    public CodeFragment visitTerminal(TerminalNode terminalNode) {
-        return null;
-    }
-
-    @Override
-    public CodeFragment visitErrorNode(ErrorNode errorNode) {
         return null;
     }
 }

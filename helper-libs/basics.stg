@@ -104,18 +104,18 @@ br label %fi<label_id>
 fi<label_id>:
 >>
 
-// binary operations between numbers
-NumBinOp(compute_left, left_register, compute_right, right_register, return_register, instruction) ::= <<
+// binary operations between types
+BinOp(compute_left, left_register, compute_right, right_register, return_register, instruction, type) ::= <<
 <compute_left>
 <compute_right>
-<return_register> = <instruction> i32 <left_register>, <right_register>
+<return_register> = <instruction> <type> <left_register>, <right_register>
 >>
 
-// binary operations on logic values
-LogicBinOp(compute_left, left_register, compute_right, right_register, return_register, instruction) ::= <<
+// comparison of numbers of type
+RelationBinOp(compute_left, left_register, compute_right, right_register, return_register, instruction, type) ::= <<
 <compute_left>
 <compute_right>
-<return_register> = <instruction> i1 <left_register>, <right_register>
+<return_register> = icmp <instruction> <type> <left_register>, <right_register>
 >>
 
 // negative expression
