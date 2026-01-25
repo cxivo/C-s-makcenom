@@ -457,7 +457,41 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitBinaryRelationOperation(C_s_makcenomParser.BinaryRelationOperationContext ctx) {
-        return null;
+        ST BinOpTemplate = templates.getInstanceOf("RelationBinOp");
+        BinOpTemplate.add("type", "i32");
+
+        // find out which operation we're doing
+        String operator = switch(ctx.op.getType()) {
+            case C_s_makcenomParser.LESS_THAN -> "slt";
+            case C_s_makcenomParser.LESS_THAN_OR_EQUAL -> "sle";
+            case C_s_makcenomParser.MORE_THAN -> "sgt";
+            case C_s_makcenomParser.MORE_THAN_OR_EQUAL -> "sge";
+            case C_s_makcenomParser.EQUALS -> "eq";
+            case C_s_makcenomParser.NOT_EQUALS -> "ne";
+            default -> "";
+        };
+
+        // not sure if an unknown operator can happen, but I trust that someone will make this error appear
+        if (operator.isEmpty()) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Neznáme porovnanie... netuším, ako sa vám to podarilo");
+            return new CodeFragment();
+        }
+
+        BinOpTemplate.add("instruction", operator);
+
+        CodeFragment left = visit(ctx.left);
+        CodeFragment right = visit(ctx.right);
+
+        BinOpTemplate.add("compute_left", left);
+        BinOpTemplate.add("compute_right", right);
+        BinOpTemplate.add("left_register", left.resultRegisterName);
+        BinOpTemplate.add("right_register", right.resultRegisterName);
+
+        String uniqueName = generateUniqueRegisterName("");
+        BinOpTemplate.add("return_register", uniqueName);
+
+        return new CodeFragment(BinOpTemplate.render(), uniqueName);
     }
 
     @Override
