@@ -452,7 +452,15 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitNegation(C_s_makcenomParser.NegationContext ctx) {
-        return null;
+        ST negationTemplate = templates.getInstanceOf("Negation");
+
+        CodeFragment inner = visit(ctx.logic_expr());
+        negationTemplate.add("compute_value", inner);
+        negationTemplate.add("value_register", inner.resultRegisterName);
+        String uniqueName = generateUniqueRegisterName("");
+        negationTemplate.add("return_register", uniqueName);
+
+        return new CodeFragment(negationTemplate.render(), uniqueName);
     }
 
     @Override

@@ -5,7 +5,7 @@ Majme celé číslo štyri, ktoré bude jeden plus tri.
 Vypíš štyri a odriadkuj.
 
 Majme pravdivosť možno, ktoré bude lož a pravda či lož.
-Ak možno tak vypíš 1, inak vypíš 0.
+Ak opak možno tak vypíš 1, inak vypíš 0.
 
 Ak tri je menšie ako štyri tak vypíš 1 a odriadkuj.
 

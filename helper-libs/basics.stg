@@ -111,7 +111,7 @@ BinOp(compute_left, left_register, compute_right, right_register, return_registe
 <return_register> = <instruction> <type> <left_register>, <right_register>
 >>
 
-// comparison of numbers of type
+// comparison of numbers of types
 RelationBinOp(compute_left, left_register, compute_right, right_register, return_register, instruction, type) ::= <<
 <compute_left>
 <compute_right>
@@ -122,6 +122,12 @@ RelationBinOp(compute_left, left_register, compute_right, right_register, return
 Negative(compute_value, value_register, return_register) ::= <<
 <compute_value>
 <return_register> = sub i32 0, <value_register>
+>>
+
+// negation expression - we do it using 1 xor x
+Negation(compute_value, value_register, return_register) ::= <<
+<compute_value>
+<return_register> = xor i1 1, <value_register>
 >>
 
 // plain integer
