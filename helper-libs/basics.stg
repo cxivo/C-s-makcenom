@@ -117,7 +117,7 @@ LogicBinOp(compute_left, left_register, compute_right, right_register, return_re
 // negative expression
 Negative(compute_value, value_register, return_register) ::= <<
 <compute_value>
-<return_register> = mul i32 <value_register>, -1
+<return_register> = sub i32 0, <value_register>
 >>
 
 // plain integer
