@@ -192,6 +192,10 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             outputTemplate = templates.getInstanceOf("PrintNumber");
             outputTemplate.add("compute_value", codeFragment);
             outputTemplate.add("value_register", codeFragment.resultRegisterName);
+        } else if (ctx.expr().CHARACTER() != null) {
+            outputTemplate = templates.getInstanceOf("PrintNumber");
+            outputTemplate.add("compute_value", codeFragment);
+            outputTemplate.add("value_register", codeFragment.resultRegisterName);
         } // TODO
 
         assert outputTemplate != null;
@@ -367,6 +371,19 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             codeFragment = visit(ctx.num_expr());
         } else if (ctx.logic_expr() != null) {
             codeFragment = visit(ctx.logic_expr());
+        } else if (ctx.CHARACTER() != null) {
+            // all chars should be of the format "'c'", so we need the character on position 1
+            int character = ctx.CHARACTER().getText().charAt(1);
+
+            // check whether the character fits in i8 and whether it isn't something more complicated (like a Chinese character)
+            if (character > 0xFF || ctx.CHARACTER().getText().length() != 3) {
+                errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                        + ": \"" + ctx.CHARACTER().getText() + "\" tu nemožno použiť, treba len písmenko bez diakritiky :/");
+                return new CodeFragment();
+            }
+
+            // once again, we convert the character to a number and pass it directly as an "output register"
+            codeFragment = new CodeFragment("", Integer.toString(character));
         } // TODO
 
         return codeFragment;
