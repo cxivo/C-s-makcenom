@@ -76,8 +76,8 @@ logic_expr
     |   XOR_PREFIX left=logic_expr op=XOR right=logic_expr             # BinaryLogicOperation
     |   left=logic_expr op=OR right=logic_expr                         # BinaryLogicOperation
     |   left=num_expr op=(LESS_THAN | MORE_THAN | LESS_THAN_OR_EQUAL | MORE_THAN_OR_EQUAL | EQUALS | NOT_EQUALS) right=num_expr    # BinaryRelationOperation
-    |   TRUE                                                            # LogicalValue
-    |   FALSE                                                           # LogicalValue
+    |   val=TRUE                                                            # LogicalValue
+    |   val=FALSE                                                           # LogicalValue
     |   id                                                              # LogicIdentifier
     ;
 

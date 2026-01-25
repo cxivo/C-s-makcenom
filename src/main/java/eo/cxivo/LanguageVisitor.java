@@ -57,22 +57,14 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     public CodeFragment visitInitial(C_s_makcenomParser.InitialContext ctx) {
         // initialize everything I can
         variables.push(new HashMap<>());
-
-        // prazdny template pre init
         ST template = templates.getInstanceOf("base");
 
-        // potrebujeme doplnit hodnotu pre atribut "code"
-        int n = ctx.statement().size();
-        for (int i = 0; i < n; i++) {
-            // rekurzivne vypocitame CodeFragment pre kazdy "stat"
-            CodeFragment statCodeFragment = visit(ctx.statement(i));
-
-            // kod z fragmentu prilepime do atributu "code"
+        // we add the code of each statement
+        for (var statement : ctx.statement()) {
+            CodeFragment statCodeFragment = visit(statement);
             template.add("code", statCodeFragment + "\r\n");
         }
 
-        // vysledny CodeFragment obsahuje pospajane kody z jednotlivych "stat"
-        // vysledny register sa nevyplna, nie je potrebny
         return new CodeFragment(template.render());
     }
 
@@ -143,7 +135,33 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitConditional(C_s_makcenomParser.ConditionalContext ctx) {
-        return null;
+        ST ifTemplate;
+
+        // select which template to use
+        if (ctx.ELSE() != null) {
+            ifTemplate = templates.getInstanceOf("IfThenElse");
+        } else {
+            ifTemplate = templates.getInstanceOf("IfThen");
+        }
+
+        CodeFragment logicExpression = visit(ctx.logic_expr());
+        ifTemplate.add("compute_boolean", logicExpression);
+        ifTemplate.add("boolean_register", logicExpression.resultRegisterName);
+
+        // code to execute if true
+        CodeFragment ifTrue = ctx.statementBody(0) != null ? visit(ctx.statementBody(0)) : visit(ctx.block(0));
+        ifTemplate.add("if_true", ifTrue);
+
+        // only if ELSE is present
+        if (ctx.ELSE() != null) {
+            // code to execute if false
+            CodeFragment ifFalse = ctx.statementBody(1) != null ? visit(ctx.statementBody(1)) : visit(ctx.block(1));
+            ifTemplate.add("if_false", ifFalse);
+        }
+
+        ifTemplate.add("label_id", generateNewLabel());
+
+        return new CodeFragment(ifTemplate.render());
     }
 
     @Override
@@ -158,6 +176,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitInput(C_s_makcenomParser.InputContext ctx) {
+
         return null;
     }
 
@@ -276,7 +295,19 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitBlock(C_s_makcenomParser.BlockContext ctx) {
-        return null;
+        // all variables in this block get put in a new layer, so they can be disregarded after the end of the block
+        variables.push(new HashMap<>());
+        ST template = templates.getInstanceOf("block");
+
+        // we add the code of each statement
+        for (var statement : ctx.statement()) {
+            CodeFragment statCodeFragment = visit(statement);
+            template.add("code", statCodeFragment + "\r\n");
+        }
+
+        // this forgets all variables declared in the block
+        variables.pop();
+        return new CodeFragment(template.render());
     }
 
     @Override
@@ -345,6 +376,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitIdentifier(C_s_makcenomParser.IdentifierContext ctx) {
+        // TODO
         return visit(ctx.id());
     }
 
@@ -410,7 +442,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitLogicalValue(C_s_makcenomParser.LogicalValueContext ctx) {
-        return null;
+        // we use the same trick of just putting the value as the "output register"
+        return new CodeFragment("", ctx.val.getType() == C_s_makcenomParser.FALSE ? "0" : "1");
     }
 
     @Override

@@ -24,6 +24,10 @@ ret i32 0
 }
 >>
 
+block(code) ::= <<
+<code>
+>>
+
 // New variable declaration and maybe assigment
 DeclarationAndAssignment(compute_value, value_register, has_value, memory_register, type) ::= <<
 ; variable initialization

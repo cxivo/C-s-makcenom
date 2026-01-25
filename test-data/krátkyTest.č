@@ -1,7 +1,8 @@
 Majme celé číslo jeden, ktoré bude 1.
 Majme celé číslo dva, ktoré bude 3 mínus 1.
 Majme celé číslo tri, ktoré bude záporné (-2 krát 3 deleno 2).
-Vypíš tri.
-
 Majme celé číslo štyri, ktoré bude jeden plus tri.
 Vypíš štyri a odriadkuj.
+
+(Ak tri je menšie ako štyri tak vypíš 1.)
+Ak pravda tak vypíš 1.
