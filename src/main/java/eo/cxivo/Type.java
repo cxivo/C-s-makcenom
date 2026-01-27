@@ -1,5 +1,8 @@
 package eo.cxivo;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class Type {
@@ -13,6 +16,7 @@ public class Type {
     }
 
     public List<Types> type;
+    public List<Integer> table_size;
 
     public Type(Types type) {
         this.type = List.of(type);
@@ -22,7 +26,7 @@ public class Type {
         this.type = type;
     }
 
-    public Type(C_s_makcenomParser.TypeContext context) {
+    public Type(C_s_makcenomParser.TypeContext context, ErrorCollector errorCollector) {
         if (context.CHAR() != null) {
             type = List.of(Types.CHAR);
         } else if (context.INT() != null) {
@@ -33,11 +37,23 @@ public class Type {
             type = List.of(Types.LIST, Types.CHAR);
         } else if (context.TABLE() != null) {
             Type innerType = new Type(context.of_type());
-            type = List.of(Types.TABLE);
+            type = new ArrayList<>();
+            type.add(Types.TABLE);
+
+            // get the table sizes
+            table_size = context.NUMBER().stream().map(terminalNode -> Integer.parseInt(terminalNode.getText())).toList();
+
+            // all sizes must be nonzero positive
+            if (table_size.stream().anyMatch(integer -> integer <= 0)) {
+                errorCollector.add("Problém na riadku " + context.getStart().getLine()
+                        + ": Tabuľka musí mať kladné celé čísla ako veľkosti");
+            }
+
             type.addAll(innerType.type);
         } else {
             Type innerType = new Type(context.of_type());
-            type = List.of(Types.LIST);
+            type = new ArrayList<>();
+            type.add(Types.LIST);
             type.addAll(innerType.type);
         }
     }
@@ -63,8 +79,23 @@ public class Type {
             case BOOL -> "i1";
             case CHAR -> "i8";
             case INT -> "i32";
-            case LIST, TABLE -> "ptr";
+            case LIST -> "ptr";
+            case TABLE -> String.join(
+                    "",
+                    table_size.stream().map(i -> "[" + Integer.toString(i) + " x ").toList())
+                    + getBaseTypeNameInLLVM()
+                    + String.join("", Collections.nCopies(table_size.size(), "]"));
             case VOID -> "void";
+        };
+    }
+
+    public String getBaseTypeNameInLLVM() {
+        return switch (type.getLast()) {
+            case BOOL -> "i1";
+            case CHAR -> "i8";
+            case INT -> "i32";
+            case LIST -> "ptr";
+            default -> "";      // will not happen
         };
     }
 }

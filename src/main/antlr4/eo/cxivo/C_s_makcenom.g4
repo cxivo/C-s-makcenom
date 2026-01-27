@@ -33,11 +33,11 @@ statementBody
     |   funcion_expr                    # ProcedureCall
 
     |   VARIABLE (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)                                                                                          # VariableAssignment
-    |   (VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'prvok zoznamu' VARIABLE  (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)                            # ArrayElementAssignment
-    |   'prvok zoznamu' VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN  (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)          # ArrayElementAssignment
-    |   (VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'znak textu' VARIABLE (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)                                # CharOfTextAssignment
-    |   (VARIABLE ('-te ')? | FIRST | LAST) 'písmeno textu' VARIABLE (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)                                      # CharOfTextAssignment
-    |   'znak textu' VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)              # CharOfTextAssignment
+    |   (index=VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'prvok zoznamu' array=VARIABLE  (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)                            # ArrayElementAssignment
+    |   'prvok zoznamu' array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN  (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)          # ArrayElementAssignment
+    |   (index=VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'znak textu' array=VARIABLE (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)                                # CharOfTextAssignment
+    |   (index=VARIABLE ('-te ')? | FIRST | LAST) 'písmeno textu' array=VARIABLE (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)                                      # CharOfTextAssignment
+    |   'znak textu' array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)              # CharOfTextAssignment
     ;
 
 functionDefinition
@@ -49,11 +49,11 @@ block
     ;
 
 id
-    :   (VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'prvok zoznamu' VARIABLE                      # ArrayElement
-    |   'prvok zoznamu' VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN    # ArrayElement
-    |   (VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'znak textu' VARIABLE                         # CharOfText
-    |   (VARIABLE ('-te ')? | FIRST | LAST) 'písmeno textu' VARIABLE                               # CharOfText
-    |   'znak textu' VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN       # CharOfText
+    :   (index=VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'prvok zoznamu' array=VARIABLE                      # ArrayElement
+    |   'prvok zoznamu' array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN    # ArrayElement
+    |   (index=VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'znak textu' array=VARIABLE                         # CharOfText
+    |   (index=VARIABLE ('-te ')? | FIRST | LAST) 'písmeno textu' array=VARIABLE                               # CharOfText
+    |   'znak textu' array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN       # CharOfText
     |   VARIABLE                                                                                   # Variable
     ;
 
@@ -86,7 +86,7 @@ logic_expr
     ;
 
 array_expr
-    :   LEFT_SQUARE (((num_expr COMMA)* num_expr?) | ((logic_expr COMMA)* logic_expr?) | ((array_expr COMMA)* array_expr)) RIGHT_SQUARE
+    :   LEFT_SQUARE ((expr COMMA)* expr?) RIGHT_SQUARE
     ;
 
 type

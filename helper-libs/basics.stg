@@ -31,29 +31,39 @@ block(code) ::= <<
 <code>
 >>
 
-// New variable declaration and maybe assigment
+// New variable/table declaration and maybe assigment
 DeclarationAndAssignment(compute_value, value_register, has_value, memory_register, type) ::= <<
 ; variable initialization
 <compute_value>
 <memory_register> = alloca <type>
 <if(has_value)>
-store <type> <value_register>, <type>* <memory_register>
+store <type> <value_register>, ptr <memory_register>
 <endif>
 >>
 
-// Assign to an existing integer variable
+//store [2 x [3 x i32]] [ [3 x i32] [i32 0, i32 1, i32 2], [3 x i32] [i32 3, i32 4, i32 5] ], ptr %vyplaty_32
+
+// Assign to an existing variable
 VariableAssignment(compute_value, value_register, memory_register, type) ::= <<
 <compute_value>
-store <type> <value_register>, <type>* <memory_register>
+store <type> <value_register>, ptr <memory_register>
 >>
 
+GetTableElement(memory_register, type, base_type, label_id, index_registers, calculate_index, return_register) ::= <<
+<calculate_index>
+%element_pos_<label_id> = getelementptr <type>, ptr <memory_register>, <index_registers>
+<return_register> = load <base_type>, ptr %element_pos_<label_id>
+>>
 
-TableDeclaration() ::= <<
-<memory_register> = alloca <type>
+SetTableElement(memory_register, type, base_type, label_id, index_registers, calculate_index, calculate_value, value_register) ::= <<
+<calculate_value>
+<calculate_index>
+%element_pos_<label_id> = getelementptr <type>, ptr <memory_register>, <index_registers>
+store <base_type> <value_register>, ptr %element_pos_<label_id>
 >>
 
 GetFromVariable(return_register, memory_register, type) ::= <<
-<return_register> = load <type>, <type>* <memory_register>
+<return_register> = load <type>, ptr <memory_register>
 >>
 
 
