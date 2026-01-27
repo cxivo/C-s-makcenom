@@ -8,7 +8,7 @@ Majme pravdivosť možno, ktoré bude lož a pravda či lož.
 Ak opak možno tak vypíš 1, inak vypíš 0.
 Ak tri je menšie ako štyri tak vypíš 1 a odriadkuj.
 
-Vypíš 'a'.
+Vypíš 'a' a odriadkuj.
 
 Majme celé číslo päť.
 
@@ -17,7 +17,7 @@ Funkcia sčítaj vracajúca celé číslo berie celé číslo ačko, celé čís
     Vráť d.
 }
 
-Päť bude sčítaj(2, 3).
+Päť bude sčítaj(dva, tri).
 
 Vypíš päť a odriadkuj.
 

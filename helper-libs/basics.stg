@@ -154,14 +154,9 @@ define <return_type> @<name>(<arguments>) {
 }
 >>
 
-ProcedureCall(name, return_type, arguments, calculate_arguments) ::= <<
+FunctionCall(name, return_type, arguments, calculate_arguments, destination, is_not_void) ::= <<
 <calculate_arguments>
-call <return_type> @<name>(<arguments>)
->>
-
-FunctionCall(name, return_type, arguments, calculate_arguments, destination) ::= <<
-<calculate_arguments>
-<destination> = call <return_type> @<name>(<arguments>)
+<if (is_not_void)><destination> = <endif>call <return_type> @<name>(<arguments>)
 >>
 
 Return(type, value_register, compute_value) ::= <<

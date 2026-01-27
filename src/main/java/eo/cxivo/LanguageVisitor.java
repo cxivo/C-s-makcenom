@@ -265,8 +265,13 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitProcedureCall(C_s_makcenomParser.ProcedureCallContext ctx) {
+       return visit(ctx.funcion_expr());
+    }
+
+    @Override
+    public CodeFragment visitFuncion_expr(C_s_makcenomParser.Funcion_exprContext ctx) {
         // add to template
-        ST functionTemplate = templates.getInstanceOf("ProcedureCall");
+        ST functionTemplate = templates.getInstanceOf("FunctionCall");
 
         if (!functions.containsKey(ctx.name.getText())) {
             errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
@@ -280,7 +285,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         // go through the arguments and visit them all
         for (int i = 0; ctx.expr(i) != null; i++) {
             CodeFragment code = visit(ctx.expr(i));
-            functionTemplate.add("calculate_arguments", code);
+            functionTemplate.add("calculate_arguments", code + "\r\n");
 
             arguments.add(functionInfo.arguments.get(i).type.getNameInLLVM() + " " + code.resultRegisterName);
         }
@@ -289,7 +294,16 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         functionTemplate.add("return_type", functionInfo.returnType.getNameInLLVM());
         functionTemplate.add("arguments", String.join(", ", arguments));
 
-        return new CodeFragment(functionTemplate.render());
+        // if not void, we add a register which will hold the result
+        if (functionInfo.returnType.type.getFirst() != Type.Types.VOID) {
+            functionTemplate.add("is_not_void", 1);
+            String returnRegister = generateUniqueRegisterName("");
+            functionTemplate.add("destination", returnRegister);
+
+            return new CodeFragment(functionTemplate.render(), returnRegister);
+        } else {
+            return new CodeFragment(functionTemplate.render());
+        }
     }
 
     @Override
@@ -363,7 +377,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             variableTemplate.add("value_register", argument.nameInCode);
             variableTemplate.add("has_value", 1);
             variableTemplate.add("type", createdVariable.type.getNameInLLVM());
-            variables.peek().put(ctx.VARIABLE(i).getText(), argument);
+            variables.peek().put(ctx.VARIABLE(i).getText(), createdVariable);
 
             // add it to the code of the function
             functionTemplate.add("code", variableTemplate.render());
@@ -470,6 +484,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
             // once again, we convert the character to a number and pass it directly as an "output register"
             codeFragment = new CodeFragment("", Integer.toString(character));
+        } else if (ctx.funcion_expr() != null) {
+            codeFragment = visit(ctx.funcion_expr());
         } // TODO
 
         return codeFragment;

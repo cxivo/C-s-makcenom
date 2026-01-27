@@ -30,7 +30,7 @@ statementBody
     |   CONTINUE                        # Continue
     |   DONE                            # ReturnNothing
     |   RETURN expr                     # Return
-    |   name=VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN                  # ProcedureCall
+    |   funcion_expr                    # ProcedureCall
 
     |   VARIABLE (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)                                                                                          # VariableAssignment
     |   (VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'prvok zoznamu' VARIABLE  (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)                            # ArrayElementAssignment
@@ -57,7 +57,11 @@ id
     |   VARIABLE                                                                                   # Variable
     ;
 
-expr: num_expr | logic_expr | array_expr | TEXT | CHARACTER | function_name=VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN;
+expr: num_expr | logic_expr | array_expr | TEXT | CHARACTER | funcion_expr;
+
+funcion_expr
+    :   name=VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN
+    ;
 
 num_expr
     :    LEFT_PAREN num_expr RIGHT_PAREN                                # ExprParen
