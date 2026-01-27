@@ -28,9 +28,9 @@ statementBody
     |   END_PROGRAM                     # EndProgram
     |   BREAK                           # Break
     |   CONTINUE                        # Continue
-    |   DONE                            # Return
+    |   DONE                            # ReturnNothing
     |   RETURN expr                     # Return
-    |   VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN                  # ProcedureCall
+    |   name=VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN                  # ProcedureCall
 
     |   VARIABLE (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)                                                                                          # VariableAssignment
     |   (VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'prvok zoznamu' VARIABLE  (op=LOGIC_ASSIGNMENT logic_expr | op=ASSIGNMENT expr)                            # ArrayElementAssignment
@@ -41,7 +41,7 @@ statementBody
     ;
 
 functionDefinition
-    : 'Funkcia' VARIABLE ('vracajúca' type | 'nevracajúca nič') 'berie' (type VARIABLE COMMA)* type VARIABLE 'a robí:' block
+    : 'Funkcia' name=VARIABLE ('vracajúca' returning=type | 'nevracajúca nič') 'berie' (in_type=type in_name=VARIABLE (COMMA | AND))* in_type=type in_name=VARIABLE 'a robí:' block
     ;
 
 block
@@ -57,7 +57,7 @@ id
     |   VARIABLE                                                                                   # Variable
     ;
 
-expr: num_expr | logic_expr | array_expr | TEXT | CHARACTER | VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN;
+expr: num_expr | logic_expr | array_expr | TEXT | CHARACTER | function_name=VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN;
 
 num_expr
     :    LEFT_PAREN num_expr RIGHT_PAREN                                # ExprParen
@@ -86,11 +86,11 @@ array_expr
     ;
 
 type
-    : INT | BOOL | STRING | CHAR | LIST of_type
+    : INT | BOOL | STRING | CHAR | LIST of_type | TABLE of_type OF_SIZE NUMBER (MULTIPLICATION NUMBER)*
     ;
 
 input_type
-    : type | LINE | WORD
+    : INT | BOOL | LINE | WORD | CHAR
     ;
 
 of_type
@@ -311,6 +311,10 @@ WORD
 
 LIST: 'zoznam';
 OF_LISTS: 'zoznamov';
+
+TABLE: 'tabuľka' | 'tabuľku';
+
+OF_SIZE: 'o veľkosti' | 'o rozmere' | 'o rozmeroch';
 
 // Program flow
 END_PROGRAM: 'Koniec';

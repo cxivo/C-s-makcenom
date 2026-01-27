@@ -3,11 +3,12 @@ group LLVM;
 import "inputAndOutput.stg"
 
 // the base of every program
-base(code) ::= <<
+base(code, declarations) ::= <<
 ; system
 declare i32 @printf(ptr, ...)
 declare i32 @putchar(i32)
 declare ptr @malloc(i32)
+declare void @free(ptr)
 
 ; library
 declare i32 @print_int(i32)
@@ -15,6 +16,8 @@ declare i32 @print_true()
 declare i32 @print_false()
 declare i32 @print_newline()
 declare i32 @print_string(ptr)
+
+<declarations>
 
 define i32 @main() {
 start:
@@ -42,6 +45,11 @@ store <type> <value_register>, <type>* <memory_register>
 VariableAssignment(compute_value, value_register, memory_register, type) ::= <<
 <compute_value>
 store <type> <value_register>, <type>* <memory_register>
+>>
+
+
+TableDeclaration() ::= <<
+<memory_register> = alloca <type>
 >>
 
 GetFromVariable(return_register, memory_register, type) ::= <<
@@ -138,4 +146,29 @@ Number(const_value, return_register) ::= <<
 // variable
 Identifier(memory_register, return_register) ::= <<
 <return_register> = load i32, i32* <memory_register>
+>>
+
+FunctionDefinition(name, return_type, arguments, code) ::= <<
+define <return_type> @<name>(<arguments>) {
+<code>
+}
+>>
+
+ProcedureCall(name, return_type, arguments, calculate_arguments) ::= <<
+<calculate_arguments>
+call <return_type> @<name>(<arguments>)
+>>
+
+FunctionCall(name, return_type, arguments, calculate_arguments, destination) ::= <<
+<calculate_arguments>
+<destination> = call <return_type> @<name>(<arguments>)
+>>
+
+Return(type, value_register, compute_value) ::= <<
+<compute_value>
+ret <type> <value_register>
+>>
+
+ReturnNothing() ::= <<
+ret void
 >>

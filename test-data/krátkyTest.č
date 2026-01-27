@@ -6,8 +6,18 @@ Vypíš štyri a odriadkuj.
 
 Majme pravdivosť možno, ktoré bude lož a pravda či lož.
 Ak opak možno tak vypíš 1, inak vypíš 0.
-
 Ak tri je menšie ako štyri tak vypíš 1 a odriadkuj.
 
 Vypíš 'a'.
+
+Majme celé číslo päť.
+
+Funkcia sčítaj vracajúca celé číslo berie celé číslo ačko, celé číslo bčko a robí: {
+    Majme celé číslo d, ktoré bude ačko plus bčko.
+    Vráť d.
+}
+
+Päť bude sčítaj(2, 3).
+
+Vypíš päť a odriadkuj.
 

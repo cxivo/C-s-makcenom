@@ -2,8 +2,11 @@ package eo.cxivo;
 
 import org.stringtemplate.v4.*;
 import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Stack;
+import java.util.stream.Collectors;
 
 
 public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
@@ -12,6 +15,10 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     // new HashSet get pushed with every new scope
     private final Stack<HashMap<String, VariableInfo>> variables = new Stack<>();
     private final ErrorCollector errorCollector;
+    private final List<CodeFragment> declarations = new ArrayList<>();
+    private final HashMap<String, FunctionInfo> functions = new HashMap<>();
+    private FunctionInfo currentFunction = null;
+
     private int registerIndex = 0;
     private int labelIndex = 0;
 
@@ -34,13 +41,14 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
 
     private boolean isVariableNameUsed(String name) {
-        return variables.stream().anyMatch(map -> map.containsKey(name));
+        return variables.stream().anyMatch(map -> map.containsKey(name.toLowerCase()));
     }
 
     private VariableInfo getVariableInfo(String name) {
+        // search in defined variables
         for (HashMap<String, VariableInfo> map: variables) {
-            if (map.containsKey(name)) {
-                return map.get(name);
+            if (map.containsKey(name.toLowerCase())) {
+                return map.get(name.toLowerCase());
             }
         }
         return null;
@@ -64,6 +72,11 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         for (var statement : ctx.statement()) {
             CodeFragment statCodeFragment = visit(statement);
             template.add("code", statCodeFragment + "\r\n");
+        }
+
+        // having visited the whole tree, we add all declarations we found
+        for (var declaration: declarations) {
+            template.add("declarations", declaration);
         }
 
         return new CodeFragment(template.render());
@@ -101,31 +114,19 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             return new CodeFragment();
         }
 
-        VariableInfo.Type type = null;
-        if (ctx.var_type.INT() != null) {
-            // i32
-            type = VariableInfo.Type.INT;
-            declarationTemplate.add("type", "i32");
-        } else if (ctx.var_type.BOOL() != null) {
-            // i1
-            type = VariableInfo.Type.BOOL;
-            declarationTemplate.add("type", "i1");
-        } else if (ctx.var_type.CHAR() != null) {
-            // i8
-            type = VariableInfo.Type.CHAR;
-            declarationTemplate.add("type", "i8");
-        }
+        Type type = new Type(ctx.var_type);
+        declarationTemplate.add("type", type.getNameInLLVM());
 
-        // allocate space for it
+
+        // allocate space for it TODO only primitives
         String registerName = generateUniqueRegisterName(variableName);
         variables.peek().put(variableName, new VariableInfo(registerName, type));
 
         declarationTemplate.add("memory_register", registerName);
 
         // calculate initial value of the variable
-        CodeFragment calculation = new CodeFragment();
         if (ctx.expr() != null) {
-            calculation = visit(ctx.expr());
+            CodeFragment calculation = visit(ctx.expr());
             declarationTemplate.add("has_value", 1);
             declarationTemplate.add("compute_value", calculation.toString());
             declarationTemplate.add("value_register", calculation.resultRegisterName);
@@ -230,12 +231,65 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitReturn(C_s_makcenomParser.ReturnContext ctx) {
-        return null;
+        ST returnTemplate = templates.getInstanceOf("Return");
+
+        // can only be used in functions
+        if (currentFunction == null) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Čo chceš vracať, tu nie sme vo funkcii, na základnú školu sa vráť");
+            return new CodeFragment();
+        }
+
+        returnTemplate.add("type", currentFunction.returnType.getNameInLLVM());
+        CodeFragment code = visit(ctx.expr());
+
+        returnTemplate.add("compute_value", code);
+        returnTemplate.add("value_register", code.resultRegisterName);
+
+        return new CodeFragment(returnTemplate.render());
+    }
+
+    @Override
+    public CodeFragment visitReturnNothing(C_s_makcenomParser.ReturnNothingContext ctx) {
+        ST returnTemplate = templates.getInstanceOf("ReturnNothing");
+
+        // can only be used in functions
+        if (currentFunction == null) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": \"Hotovo\" sa používa len vo funkciách, asi chcete použiť \"Koniec\"");
+            return new CodeFragment();
+        }
+
+        return new CodeFragment(returnTemplate.render());
     }
 
     @Override
     public CodeFragment visitProcedureCall(C_s_makcenomParser.ProcedureCallContext ctx) {
-        return null;
+        // add to template
+        ST functionTemplate = templates.getInstanceOf("ProcedureCall");
+
+        if (!functions.containsKey(ctx.name.getText())) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Neznáma funkcia \"" + ctx.name.getText() + "\"");
+            return new CodeFragment();
+        }
+
+        FunctionInfo functionInfo = functions.get(ctx.name.getText());
+        List<String> arguments = new ArrayList<>();
+
+        // go through the arguments and visit them all
+        for (int i = 0; ctx.expr(i) != null; i++) {
+            CodeFragment code = visit(ctx.expr(i));
+            functionTemplate.add("calculate_arguments", code);
+
+            arguments.add(functionInfo.arguments.get(i).type.getNameInLLVM() + " " + code.resultRegisterName);
+        }
+
+        functionTemplate.add("name", functionInfo.nameInCode);
+        functionTemplate.add("return_type", functionInfo.returnType.getNameInLLVM());
+        functionTemplate.add("arguments", String.join(", ", arguments));
+
+        return new CodeFragment(functionTemplate.render());
     }
 
     @Override
@@ -254,21 +308,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         VariableInfo info = getVariableInfo(variableName);
         assert info != null;
         variableAssignmentTemplate.add("memory_register", info.nameInCode);
-
-        // do different things based on the type
-        String llvm_type = switch (info.type) {
-            case BOOL -> "i1";
-            case CHAR -> "i8";
-            case INT -> "i32";
-        };
-
-        // pointer if it's an array
-        if (info.arrayDimension > 0) {
-            llvm_type = "ptr";
-            // TODO array
-        }
-        variableAssignmentTemplate.add("type", llvm_type);
-
+        variableAssignmentTemplate.add("type", info.type.getNameInLLVM());
 
         // code for computing the value
         CodeFragment value;
@@ -296,7 +336,66 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitFunctionDefinition(C_s_makcenomParser.FunctionDefinitionContext ctx) {
-        return null;
+        // add to template
+        ST functionTemplate = templates.getInstanceOf("FunctionDefinition");
+
+        // firstly, gather all the needed info
+        FunctionInfo functionInfo = new FunctionInfo();
+        functionInfo.nameInCode = toLowerCaseASCII(ctx.name.getText()) + generateNewLabel();
+
+        // returning type
+        functionInfo.returnType = new Type(ctx.returning);
+
+        // add new scope
+        variables.push(new HashMap<>());
+
+        // go through the arguments and add them to the scope
+        // from 1, because 0 is the function name
+        for (int i = 1; ctx.VARIABLE(i) != null; i++) {
+            VariableInfo argument = new VariableInfo(
+                    generateUniqueRegisterName(ctx.VARIABLE(i).getText()),
+                    new Type(ctx.type(i)));
+
+            // create a new variable for every argument
+            VariableInfo createdVariable = new VariableInfo(argument.nameInCode + "_var", argument.type);
+            ST variableTemplate = templates.getInstanceOf("DeclarationAndAssignment");
+            variableTemplate.add("memory_register", createdVariable.nameInCode);
+            variableTemplate.add("value_register", argument.nameInCode);
+            variableTemplate.add("has_value", 1);
+            variableTemplate.add("type", createdVariable.type.getNameInLLVM());
+            variables.peek().put(ctx.VARIABLE(i).getText(), argument);
+
+            // add it to the code of the function
+            functionTemplate.add("code", variableTemplate.render());
+
+            functionInfo.arguments.add(argument);
+        }
+
+        // put into the registry for functions
+        functions.put(ctx.name.getText(), functionInfo);
+
+        // and set as the current function
+        currentFunction = functionInfo;
+
+        functionTemplate.add("name", functionInfo.nameInCode);
+        functionTemplate.add("return_type", functionInfo.returnType.getNameInLLVM());
+
+        // make a nice looking list of arguments
+        functionTemplate.add("arguments", functionInfo.arguments.stream()
+                .map(variableInfo -> variableInfo.type.getNameInLLVM() + " " + variableInfo.nameInCode)
+                .collect(Collectors.joining(", ")));
+
+        // add code inside the function
+        CodeFragment code = visit(ctx.block());
+        functionTemplate.add("code", code);
+
+        // pop the scope and unset the current function
+        variables.pop();
+        currentFunction = null;
+
+        // DON'T actually return the function definition! Just save it
+        declarations.add(new CodeFragment(functionTemplate.render()));
+        return new CodeFragment();
     }
 
     @Override
@@ -343,20 +442,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         assert info != null;
         getFromVariableTemplate.add("memory_register", info.nameInCode);
 
-        // do different things based on the type
-        String llvm_type = switch (info.type) {
-            case BOOL -> "i1";
-            case CHAR -> "i8";
-            case INT -> "i32";
-        };
-
-        // pointer if it's an array
-        if (info.arrayDimension > 0) {
-            llvm_type = "ptr";
-            // TODO array
-        }
-
-        getFromVariableTemplate.add("type", llvm_type);
+        getFromVariableTemplate.add("type", info.type.getNameInLLVM());
         String uniqueName = generateUniqueRegisterName("");
         getFromVariableTemplate.add("return_register", uniqueName);
 
