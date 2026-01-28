@@ -21,7 +21,7 @@ Päť bude sčítaj(dva, tri).
 
 Vypíš päť a odriadkuj.
 
-Majme tabuľku celých čísel o veľkosti 2 krát 3 výplaty.
+Majme tabuľku celých čísel o veľkosti 2 krát 3 výplaty ktoré budú [[0, 1, 2], [3, štyri plus päť, 5]].
 Prvok zoznamu výplaty na pozícii (1, 2) bude 42.
 
 
@@ -33,4 +33,4 @@ Funkcia poľovačka vracajúca tabuľku celých čísel o veľkosti 2 krát 3 be
 }
 
 Majme tabuľku celých čísel o veľkosti 2 krát 3 výplaty2, ktorá bude Poľovačka (výplaty).
-Vypíš prvok zoznamu výplaty2 na pozícii (0, 1) a odriadkuj.
+Vypíš prvok zoznamu výplaty2 na pozícii (1, 1) a odriadkuj.

@@ -59,6 +59,103 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     }
 
 
+    protected static class ArrayAssignmentTemplate {
+        protected CodeFragment code;    // for calculating the value
+        protected List<Integer> position = new ArrayList<>();   // position of the element in the array
+
+        protected ArrayAssignmentTemplate(CodeFragment code, int pos) {
+            this.code = code;
+            position.add(pos);
+        }
+    }
+
+
+    protected static class TableRepresentation {
+        protected String arrayConstant;     // a LLVM constant
+        protected List<ArrayAssignmentTemplate> calculations = new ArrayList<>();  // info for later assignment
+    }
+
+
+    private TableRepresentation createTableConstant(C_s_makcenomParser.Array_exprContext context, Type mustBeType) {
+        List<String> constantPartOfArray = new ArrayList<>();
+        TableRepresentation tableRepresentation = new TableRepresentation();
+
+
+        if (mustBeType.table_size.size() == 1) {
+            // go through the array and visit all elements
+            for (int i = 0; context.expr(i) != null; i++) {
+                // we should be only expecting other types of expressions according to our type
+                if (context.expr(i).array_expr() != null) {
+                    errorCollector.add("Problém na riadku " + context.getStart().getLine()
+                            + ": Tabuľka na pravej strane má viac rozmerov než by mala mať");
+                    return new TableRepresentation();
+                }
+
+                // this tests for constants, which can just be plopped into the LLVM array constant
+                if (context.expr(i).CHARACTER() != null
+                        || (context.expr(i).num_expr() != null && context.expr(i).num_expr() instanceof C_s_makcenomParser.NumberContext)
+                        || (context.expr(i).logic_expr() != null && context.expr(i).logic_expr() instanceof C_s_makcenomParser.LogicalValueContext)) {
+                    CodeFragment code = visit(context.expr(i));
+
+                    // this holds the value, and there is no code
+                    constantPartOfArray.add(mustBeType.getBaseTypeNameInLLVM() + " " + code.resultRegisterName);
+                } else {
+                    // we need a different approach
+                    // we add a zero or whatever to the constant array
+                    constantPartOfArray.add(mustBeType.getBaseTypeNameInLLVM() + " 0");
+
+                    // and we add the code to set the position to the correct value
+                    tableRepresentation.calculations.add(new ArrayAssignmentTemplate(visit(context.expr(i)), i));
+
+                    // the setting itself will be done later
+                }
+            }
+        } else {
+            // recursion into the table!
+            // type with one less table dimension
+            Type innerType = new Type(mustBeType.type);
+            innerType.table_size = new ArrayList<>(mustBeType.table_size);
+            innerType.table_size.removeFirst();
+
+            // for all parts of the array
+            for (int i = 0; context.expr(i) != null; i++) {
+                if (context.expr(i).array_expr() == null) {
+                    errorCollector.add("Problém na riadku " + context.getStart().getLine()
+                            + ": Tabuľka na pravej strane má menej rozmerov než by mala mať");
+                    return new TableRepresentation();
+                }
+
+                // recursively visit
+                TableRepresentation part = createTableConstant(context.expr(i).array_expr(), innerType);
+
+                // add the position in the array
+                final int finalI = i;
+                part.calculations.forEach(c -> c.position.addFirst(finalI));
+
+                // collect everything generated
+                constantPartOfArray.add(part.arrayConstant);
+                tableRepresentation.calculations.addAll(part.calculations);
+            }
+        }
+
+        // create the LLVM array constant
+        tableRepresentation.arrayConstant = mustBeType.getNameInLLVM() + " [" + String.join(", ", constantPartOfArray) + "]";
+        return tableRepresentation;
+    }
+
+//    private CodeFragment formatTableConstant(C_s_makcenomParser.Array_exprContext context, Type mustBeType) {
+//         primitives
+//        if (mustBeType.type.getFirst() == Type.Types.BOOL || mustBeType.type.getFirst() == Type.Types.CHAR || mustBeType.type.getFirst() == Type.Types.INT) {
+//
+//        }
+//
+//        // check if the user isn't pulling dirty tricks
+//        if (context.expr() == null) {
+//            errorCollector.add("Problém na riadku " + context.getStart().getLine()
+//                    + ": Do tabuľky je možné priradiť iba tabuľku, nič iné, toto nie je JavaScript");
+//            return new CodeFragment();
+//        }
+//    }
 
     // generates the code for assignment, to be used by multiple visitors
     // need only either context or calculated value
@@ -72,16 +169,47 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         ST variableAssignmentTemplate = templates.getInstanceOf("VariableAssignment");
 
-        variableAssignmentTemplate.add("memory_register", variableInfo.nameInCode);
-        variableAssignmentTemplate.add("type", variableInfo.type.getNameInLLVM());
-
         if (calculatedValue != null) {
             // we use the CodeFragment
+            variableAssignmentTemplate.add("memory_register", variableInfo.nameInCode);
+            variableAssignmentTemplate.add("type", variableInfo.type.getNameInLLVM());
             variableAssignmentTemplate.add("compute_value", calculatedValue);
             variableAssignmentTemplate.add("value_register", calculatedValue.resultRegisterName);
-        }  else {
+        } else if (variableInfo.type.type.getFirst() == Type.Types.TABLE && context.array_expr() != null) {
+            TableRepresentation tableRepresentation = createTableConstant(context.array_expr(), variableInfo.type);
+            variableAssignmentTemplate.add("value_register", tableRepresentation.arrayConstant);
+            variableAssignmentTemplate.add("memory_register", variableInfo.nameInCode);
+            // we do NOT set the type, it's already built in the constant
+
+
+            // puts correct non-compile time constant values into the correct places
+            StringBuilder particularElements = new StringBuilder();
+
+            tableRepresentation.calculations.forEach(x -> {
+                ST setTableElementTemplate = templates.getInstanceOf("SetTableElement");
+
+                // common for all elements
+                setTableElementTemplate.add("memory_register", variableInfo.nameInCode);
+                setTableElementTemplate.add("type", variableInfo.type.getNameInLLVM());
+                setTableElementTemplate.add("base_type", variableInfo.type.getBaseTypeNameInLLVM());
+
+                setTableElementTemplate.add("label_id", generateNewLabel());
+                setTableElementTemplate.add("calculate_value", x.code);
+                setTableElementTemplate.add("value_register", x.code.resultRegisterName);
+
+                // add correct position for
+                setTableElementTemplate.add("index_registers",
+                        x.position.stream().map(j -> "i32 " + j).collect(Collectors.joining(", ")));
+
+                particularElements.append(setTableElementTemplate.render()).append("\r\n");
+            });
+
+            variableAssignmentTemplate.add("code_after", particularElements.toString());
+        } else {
             // regular integers and bools
             CodeFragment value = visit(context);
+            variableAssignmentTemplate.add("memory_register", variableInfo.nameInCode);
+            variableAssignmentTemplate.add("type", variableInfo.type.getNameInLLVM());
             variableAssignmentTemplate.add("compute_value", value);
             variableAssignmentTemplate.add("value_register", value.resultRegisterName);
         }
