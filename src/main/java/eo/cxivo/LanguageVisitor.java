@@ -769,6 +769,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         String operator = switch(ctx.op.getType()) {
             case C_s_makcenomParser.MULTIPLICATION -> "mul";
             case C_s_makcenomParser.DIVISION -> "sdiv";
+            case C_s_makcenomParser.MODULO -> "srem";
             case C_s_makcenomParser.ADDITION -> "add";
             case C_s_makcenomParser.SUBTRACTION -> "sub";
             default -> "";

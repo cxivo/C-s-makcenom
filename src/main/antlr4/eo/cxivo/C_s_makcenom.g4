@@ -66,7 +66,7 @@ function_expr
 num_expr
     :    LEFT_PAREN num_expr RIGHT_PAREN                                # ExprParen
     |    op=NEGATIVE num_expr                                           # Negative
-    |    left=num_expr op=(MULTIPLICATION|DIVISION) right=num_expr      # BinaryOperation
+    |    left=num_expr op=(MULTIPLICATION|DIVISION|MODULO) right=num_expr      # BinaryOperation
     |    left=num_expr op=(ADDITION|SUBTRACTION) right=num_expr         # BinaryOperation
     |    NUMBER                                                         # Number
     |    ('dĺžka zoznamu' | 'dĺžka textu') VARIABLE                     # ArraySize
@@ -203,6 +203,10 @@ MULTIPLICATION
 
 DIVISION
     :    'deleno' | 'delené' | 'delená' | 'delení' | 'delených'
+    ;
+
+MODULO
+    :   'modulo' | 'zvyšok po delení číslom'
     ;
 
 ADDITION

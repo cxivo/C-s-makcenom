@@ -21,7 +21,7 @@ Päť bude sčítaj(dva, tri).
 
 Vypíš päť a odriadkuj.
 
-Majme tabuľku celých čísel o veľkosti 2 krát 3 výplaty ktoré budú [[0, 1, 2], [3, štyri plus päť, 5]].
+Majme tabuľku celých čísel o veľkosti 2 krát 3 výplaty ktoré budú [[0, 1, 2], [3, 15 modulo (štyri plus päť), 5]].
 Prvok zoznamu výplaty na pozícii (1, 2) bude 42.
 
 
