@@ -27,7 +27,9 @@ public class Type {
     }
 
     public Type(C_s_makcenomParser.TypeContext context, ErrorCollector errorCollector) {
-        if (context.CHAR() != null) {
+        if (context == null) {
+            type = List.of(Types.VOID);
+        } else if (context.CHAR() != null) {
             type = List.of(Types.CHAR);
         } else if (context.INT() != null) {
             type = List.of(Types.INT);

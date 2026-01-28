@@ -51,14 +51,14 @@ store <type> <value_register>, ptr <memory_register>
 
 GetTableElement(memory_register, type, base_type, label_id, index_registers, calculate_index, return_register) ::= <<
 <calculate_index>
-%element_pos_<label_id> = getelementptr <type>, ptr <memory_register>, <index_registers>
+%element_pos_<label_id> = getelementptr <type>, ptr <memory_register>, i32 0, <index_registers>
 <return_register> = load <base_type>, ptr %element_pos_<label_id>
 >>
 
 SetTableElement(memory_register, type, base_type, label_id, index_registers, calculate_index, calculate_value, value_register) ::= <<
 <calculate_value>
 <calculate_index>
-%element_pos_<label_id> = getelementptr <type>, ptr <memory_register>, <index_registers>
+%element_pos_<label_id> = getelementptr <type>, ptr <memory_register>, i32 0, <index_registers>
 store <base_type> <value_register>, ptr %element_pos_<label_id>
 >>
 

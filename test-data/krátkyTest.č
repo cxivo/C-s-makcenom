@@ -12,7 +12,7 @@ Vypíš 'a' a odriadkuj.
 
 Majme celé číslo päť.
 
-Funkcia sčítaj vracajúca celé číslo berie celé číslo ačko, celé číslo bčko a robí: {
+Funkcia sčítaj vracajúca celé číslo berie celé číslo ačko a celé číslo bčko a robí: {
     Majme celé číslo d, ktoré bude ačko plus bčko.
     Vráť d.
 }
@@ -24,3 +24,11 @@ Vypíš päť a odriadkuj.
 Majme tabuľku celých čísel o veľkosti 2 krát 3 výplaty.
 Prvok zoznamu výplaty na pozícii (1, 2) bude 42.
 Vypíš prvok zoznamu výplaty na pozícii (jeden, dva) a odriadkuj.
+
+
+Funkcia poľovačka nevracajúca nič berie tabuľku celých čísel o veľkosti 2 krát 3 tabuľôčička a robí: {
+    Vypíš prvok zoznamu tabuľôčička na pozícii (1, 2) a odriadkuj.
+    Hotovo.
+}
+
+Poľovačka (výplaty).

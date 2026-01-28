@@ -76,7 +76,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         // having visited the whole tree, we add all declarations we found
         for (var declaration: declarations) {
-            template.add("declarations", declaration);
+            template.add("declarations", declaration+ "\r\n\r\n");
         }
 
         return new CodeFragment(template.render());
