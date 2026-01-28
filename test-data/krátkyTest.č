@@ -23,12 +23,14 @@ Vypíš päť a odriadkuj.
 
 Majme tabuľku celých čísel o veľkosti 2 krát 3 výplaty.
 Prvok zoznamu výplaty na pozícii (1, 2) bude 42.
-Vypíš prvok zoznamu výplaty na pozícii (jeden, dva) a odriadkuj.
 
 
-Funkcia poľovačka nevracajúca nič berie tabuľku celých čísel o veľkosti 2 krát 3 tabuľôčička a robí: {
+
+Funkcia poľovačka vracajúca tabuľku celých čísel o veľkosti 2 krát 3 berie tabuľku celých čísel o veľkosti 2 krát 3 tabuľôčička a robí: {
     Vypíš prvok zoznamu tabuľôčička na pozícii (1, 2) a odriadkuj.
-    Hotovo.
+    Prvok zoznamu tabuľôčička na pozícii (0, 1) bude 67.
+    Vráť tabuľôčička.
 }
 
-Poľovačka (výplaty).
+Majme tabuľku celých čísel o veľkosti 2 krát 3 výplaty2, ktorá bude Poľovačka (výplaty).
+Vypíš prvok zoznamu výplaty2 na pozícii (0, 1) a odriadkuj.

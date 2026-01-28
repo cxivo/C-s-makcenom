@@ -58,8 +58,68 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         this.errorCollector = errorCollector;
     }
 
+
+
+    // generates the code for assignment, to be used by multiple visitors
+    // need only either context or calculated value
+    private CodeFragment assignment(VariableInfo variableInfo, C_s_makcenomParser.ExprContext context, int line, CodeFragment calculatedValue, boolean mustBeBool) {
+        // just for beauty, enforce correct usage of booleans
+        if (mustBeBool && variableInfo.type.type.getFirst() != Type.Types.BOOL) {
+            errorCollector.add("Problém na riadku " + line
+                    + ": Pri \"platí ak\" má byť pravdivostná hodnota, nie nejaké " + context.getText());
+            return new CodeFragment();
+        }
+
+        ST variableAssignmentTemplate = templates.getInstanceOf("VariableAssignment");
+
+        variableAssignmentTemplate.add("memory_register", variableInfo.nameInCode);
+        variableAssignmentTemplate.add("type", variableInfo.type.getNameInLLVM());
+
+        if (calculatedValue != null) {
+            // we use the CodeFragment
+            variableAssignmentTemplate.add("compute_value", calculatedValue);
+            variableAssignmentTemplate.add("value_register", calculatedValue.resultRegisterName);
+        }  else {
+            // regular integers and bools
+            CodeFragment value = visit(context);
+            variableAssignmentTemplate.add("compute_value", value);
+            variableAssignmentTemplate.add("value_register", value.resultRegisterName);
+        }
+
+        return new CodeFragment(variableAssignmentTemplate.render());
+    }
+
+    private CodeFragment declarationAndMaybeAssignment(String name, Type type, C_s_makcenomParser.ExprContext context, int line, CodeFragment calculatedValue) {
+        ST declarationTemplate = templates.getInstanceOf("Declaration");
+
+        // check if name unsued
+        if (isVariableNameUsed(name)) {
+            errorCollector.add("Problém na riadku " + line
+                    + ": Názov \"" + name + "\" je už použitý, buďte kreatívnejší pri výbere názvu");
+            return new CodeFragment();
+        }
+
+        declarationTemplate.add("type", type.getNameInLLVM());
+
+        // allocate space for it TODO only primitives and tables
+        String registerName = generateUniqueRegisterName(name);
+        VariableInfo variableInfo = new VariableInfo(registerName, type);
+        variables.peek().put(name, variableInfo);
+
+        declarationTemplate.add("memory_register", registerName);
+
+        // calculate initial value of the variable
+        if (context != null || calculatedValue != null) {
+            declarationTemplate.add("code_after", assignment(variableInfo, context, line, calculatedValue, false));
+        }
+
+        return new CodeFragment(declarationTemplate.render());
+    }
+
+
+
     ///////////////////////////////////////////////
-    /// Overriden methods
+    /// Overridden methods
     ///////////////////////////////////////////////
 
     @Override
@@ -102,57 +162,9 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         return new CodeFragment();
     }
 
-
-/*    private String formatTableConstant(C_s_makcenomParser.Array_exprContext context) {
-        // check if the user isn't pulling dirty tricks
-        if (ctx.expr().array_expr() == null) {
-            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
-                    + ": Do tabuľky je možné priradiť iba tabuľku, nič iné, toto nie je JavaScript");
-            return new CodeFragment();
-        }
-
-        ctx.expr().array_expr()
-    }*/
-
     @Override
     public CodeFragment visitDeclaration(C_s_makcenomParser.DeclarationContext ctx) {
-        ST declarationTemplate = templates.getInstanceOf("DeclarationAndAssignment");
-
-        // check if name unsued
-        String variableName = ctx.VARIABLE().getText();
-        if (isVariableNameUsed(variableName)) {
-            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
-                    + ": Názov \"" + variableName + "\" je už použitý, buďte kreatívnejší pri výbere názvu");
-            return new CodeFragment();
-        }
-
-        // get the type
-        Type type = new Type(ctx.var_type, errorCollector);
-        declarationTemplate.add("type", type.getNameInLLVM());
-
-
-        // allocate space for it TODO only primitives
-        String registerName = generateUniqueRegisterName(variableName);
-        variables.peek().put(variableName, new VariableInfo(registerName, type));
-
-        declarationTemplate.add("memory_register", registerName);
-
-        // calculate initial value of the variable
-        if (ctx.expr() != null) {
-            if (type.type.getFirst() == Type.Types.TABLE) {
-                    errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
-                            + ": Do tabuľky nemožno nič priraďovať, autorom jazyka sa to nechcelo implementovať");
-                    return new CodeFragment();
-            } else {
-                // regular integers and bools
-                CodeFragment calculation = visit(ctx.expr());
-                declarationTemplate.add("has_value", 1);
-                declarationTemplate.add("compute_value", calculation.toString());
-                declarationTemplate.add("value_register", calculation.resultRegisterName);
-            }
-        }
-
-        return new CodeFragment(declarationTemplate.render());
+        return declarationAndMaybeAssignment(ctx.VARIABLE().getText(), new Type(ctx.var_type, errorCollector), ctx.expr(), ctx.start.getLine(), null);
     }
 
     @Override
@@ -285,11 +297,11 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitProcedureCall(C_s_makcenomParser.ProcedureCallContext ctx) {
-       return visit(ctx.funcion_expr());
+       return visit(ctx.function_expr());
     }
 
     @Override
-    public CodeFragment visitFuncion_expr(C_s_makcenomParser.Funcion_exprContext ctx) {
+    public CodeFragment visitFunction_expr(C_s_makcenomParser.Function_exprContext ctx) {
         // add to template
         ST functionTemplate = templates.getInstanceOf("FunctionCall");
 
@@ -328,48 +340,31 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitVariableAssignment(C_s_makcenomParser.VariableAssignmentContext ctx) {
-        ST variableAssignmentTemplate = templates.getInstanceOf("VariableAssignment");
-
-        // check if name is defined
+        // get the location of the variable, so stuff can be stored inside
         String variableName = ctx.VARIABLE().getText();
-        if (!isVariableNameUsed(variableName)) {
+        VariableInfo info = getVariableInfo(variableName);
+
+        // does it exist?
+        if (info == null) {
             errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
                     + ": Neznáma premenná \"" + variableName + "\" (inak, v Č treba pred použitím deklarovať)");
             return new CodeFragment();
-        }
-
-        // get the location of the variable, so stuff can be stored inside
-        VariableInfo info = getVariableInfo(variableName);
-        assert info != null;
-        variableAssignmentTemplate.add("memory_register", info.nameInCode);
-        variableAssignmentTemplate.add("type", info.type.getNameInLLVM());
-
-        // code for computing the value
-        CodeFragment value;
-        if (ctx.logic_expr() != null) {
-            value = visit(ctx.logic_expr());
         } else {
-            value = visit(ctx.expr());
+            return assignment(info, ctx.expr(), ctx.start.getLine(), null, ctx.LOGIC_ASSIGNMENT() != null);
         }
-
-        variableAssignmentTemplate.add("compute_value", value);
-        variableAssignmentTemplate.add("value_register", value.resultRegisterName);
-
-        return new CodeFragment(variableAssignmentTemplate.render());
     }
 
     @Override
     public CodeFragment visitArrayElementAssignment(C_s_makcenomParser.ArrayElementAssignmentContext ctx) {
         String arrayName = ctx.array.getText();
-        if (!isVariableNameUsed(arrayName)) {
-            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
-                    + ": Neznáma premenná \"" + arrayName + "\" (inak, v Č treba pred použitím deklarovať)");
-            return new CodeFragment();
-        }
 
         // get the location of the variable, so stuff can be stored inside
         VariableInfo info = getVariableInfo(arrayName);
-        assert info != null;
+        if (info == null) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Neznáme pole \"" + arrayName + "\" (inak, v Č treba pred použitím deklarovať)");
+            return new CodeFragment();
+        }
 
         // different approaches for static and dynamic arrays
         if (info.type.type.getFirst() == Type.Types.TABLE) {
@@ -380,12 +375,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             tableTemplate.add("label_id", generateNewLabel());
 
             // input
-            CodeFragment input;
-            if (ctx.logic_expr() != null) {
-                input = visit(ctx.logic_expr());
-            } else {
-                input = visit(ctx.expr());
-            }
+            CodeFragment input = visit(ctx.expr());
+
 
             tableTemplate.add("calculate_value", input);
             tableTemplate.add("value_register", input.resultRegisterName);
@@ -442,16 +433,23 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                     new Type(ctx.type(i - from), errorCollector));
 
             // create a new variable for every argument
-            VariableInfo createdVariable = new VariableInfo(argument.nameInCode + "_var", argument.type);
-            ST variableTemplate = templates.getInstanceOf("DeclarationAndAssignment");
-            variableTemplate.add("memory_register", createdVariable.nameInCode);
-            variableTemplate.add("value_register", argument.nameInCode);
-            variableTemplate.add("has_value", 1);
-            variableTemplate.add("type", createdVariable.type.getNameInLLVM());
-            variables.peek().put(ctx.VARIABLE(i).getText(), createdVariable);
+            CodeFragment variableFromArgument = declarationAndMaybeAssignment(
+                    ctx.VARIABLE(i).getText(),
+                    argument.type,
+                    null,
+                    ctx.start.getLine(),
+                    new CodeFragment("", argument.nameInCode));
+
+//            VariableInfo createdVariable = new VariableInfo(argument.nameInCode + "_var", argument.type);
+//            ST variableTemplate = templates.getInstanceOf("DeclarationAndAssignment");
+//            variableTemplate.add("memory_register", createdVariable.nameInCode);
+//            variableTemplate.add("value_register", argument.nameInCode);
+//            variableTemplate.add("has_value", 1);
+//            variableTemplate.add("type", createdVariable.type.getNameInLLVM());
+//            variables.peek().put(ctx.VARIABLE(i).getText(), createdVariable);
 
             // add it to the code of the function
-            functionTemplate.add("code", variableTemplate.render());
+            functionTemplate.add("code", variableFromArgument);
 
             functionInfo.arguments.add(argument);
         }
@@ -552,20 +550,16 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         return null;
     }
 
-    private CodeFragment visitVariableFromMorePlaces(String name, int line) {
+    private CodeFragment visitVariableFromMorePlaces(String variableName, int line) {
         ST getFromVariableTemplate = templates.getInstanceOf("GetFromVariable");
 
-        // check if name is defined
-        String variableName = name;
-        if (!isVariableNameUsed(variableName)) {
+        // get the location of the variable, so stuff can be stored inside
+        VariableInfo info = getVariableInfo(variableName);
+        if (info == null) {
             errorCollector.add("Problém na riadku " + line
                     + ": Neznáma premenná \"" + variableName + "\", treba ju definovať");
             return new CodeFragment();
         }
-
-        // get the location of the variable, so stuff can be stored inside
-        VariableInfo info = getVariableInfo(variableName);
-        assert info != null;
         getFromVariableTemplate.add("memory_register", info.nameInCode);
 
         getFromVariableTemplate.add("type", info.type.getNameInLLVM());
@@ -601,8 +595,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
             // once again, we convert the character to a number and pass it directly as an "output register"
             codeFragment = new CodeFragment("", Integer.toString(character));
-        } else if (ctx.funcion_expr() != null) {
-            codeFragment = visit(ctx.funcion_expr());
+        } else if (ctx.function_expr() != null) {
+            codeFragment = visit(ctx.function_expr());
         } // TODO
 
         return codeFragment;
