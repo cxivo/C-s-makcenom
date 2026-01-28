@@ -293,13 +293,13 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         // add to template
         ST functionTemplate = templates.getInstanceOf("FunctionCall");
 
-        if (!functions.containsKey(ctx.name.getText())) {
+        if (!functions.containsKey(ctx.name.getText().toLowerCase())) {
             errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
                     + ": Neznáma funkcia \"" + ctx.name.getText() + "\"");
             return new CodeFragment();
         }
 
-        FunctionInfo functionInfo = functions.get(ctx.name.getText());
+        FunctionInfo functionInfo = functions.get(ctx.name.getText().toLowerCase());
         List<String> arguments = new ArrayList<>();
 
         // go through the arguments and visit them all
@@ -432,11 +432,14 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         variables.push(new HashMap<>());
 
         // go through the arguments and add them to the scope
-        // from 1, because 0 is the function name
+        // from 1 because we ignore the name of the function
         for (int i = 1; ctx.VARIABLE(i) != null; i++) {
+            // but types start from 0 if the function doesn't return anything
+            int from = functionInfo.returnType.type.getFirst() == Type.Types.VOID ? 1 : 0;
+
             VariableInfo argument = new VariableInfo(
                     generateUniqueRegisterName(ctx.VARIABLE(i).getText()),
-                    new Type(ctx.type(i), errorCollector));
+                    new Type(ctx.type(i - from), errorCollector));
 
             // create a new variable for every argument
             VariableInfo createdVariable = new VariableInfo(argument.nameInCode + "_var", argument.type);
