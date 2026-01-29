@@ -16,11 +16,7 @@ public class Type {
     }
 
     public List<Types> type;
-    public List<Integer> table_size;
-
-    public Type(Types type) {
-        this.type = List.of(type);
-    }
+    public List<Integer> table_size = new ArrayList<>();
 
     public Type(List<Types> type) {
         this.type = type;

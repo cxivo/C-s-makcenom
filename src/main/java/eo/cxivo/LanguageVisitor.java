@@ -217,6 +217,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         return new CodeFragment(variableAssignmentTemplate.render());
     }
 
+
     private CodeFragment declarationAndMaybeAssignment(String name, Type type, C_s_makcenomParser.ExprContext context, int line, CodeFragment calculatedValue) {
         ST declarationTemplate = templates.getInstanceOf("Declaration");
 
@@ -645,8 +646,11 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             ST tableTemplate = templates.getInstanceOf("GetTableElement");
             tableTemplate.add("memory_register", info.nameInCode);
             tableTemplate.add("type", info.type.getNameInLLVM());
-            tableTemplate.add("base_type", info.type.getBaseTypeNameInLLVM());
             tableTemplate.add("label_id", generateNewLabel());
+
+            // copy of the type
+            Type innerType = new Type(info.type.type);
+            innerType.table_size.addAll(info.type.table_size);
 
             // index
             if (ctx.index != null) {
@@ -654,6 +658,10 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 CodeFragment indexCode = visitVariableFromMorePlaces(ctx.index.getText(), ctx.getStart().getLine());
                 tableTemplate.add("calculate_index", indexCode);
                 tableTemplate.add("index_registers", "i32 " + indexCode.resultRegisterName);
+
+                // base type
+                innerType.table_size.removeFirst();
+                tableTemplate.add("base_type", innerType.getNameInLLVM());
             } else {
                 // expression, possibly multidimensional
                 // visit all
@@ -661,6 +669,13 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
                 tableTemplate.add("calculate_index", String.join("\r\n", indexCodes.stream().map(CodeFragment::toString).toList()));
                 tableTemplate.add("index_registers", String.join(", ", indexCodes.stream().map(codeFragment -> "i32 " + codeFragment.resultRegisterName).toList()));
+
+                // base type
+                for (int i = 0; i < ctx.num_expr().size(); i++) {
+                    // this many layers lower
+                    innerType.table_size.removeFirst();
+                }
+                tableTemplate.add("base_type", innerType.getNameInLLVM());
             }
 
 
