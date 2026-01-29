@@ -6,7 +6,9 @@ Vypíš štyri a odriadkuj.
 
 Majme pravdivosť možno, ktoré bude lož a pravda či lož.
 Ak opak možno tak vypíš 1, inak vypíš 0.
-Ak tri je menšie ako štyri tak vypíš 1 a odriadkuj.
+Ak tri je menšie ako štyri tak {
+    Vypíš 1 a odriadkuj.
+}
 
 Vypíš 'a' a odriadkuj.
 

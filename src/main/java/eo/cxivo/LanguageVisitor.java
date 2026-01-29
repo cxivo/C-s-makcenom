@@ -259,8 +259,9 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         // we add the code of each statement
         for (var statement : ctx.statement()) {
-            CodeFragment statCodeFragment = visit(statement);
-            template.add("code", statCodeFragment + "\r\n");
+            CodeFragment statementCodeFragment = visit(statement);
+            statementCodeFragment.code = "\t" + statementCodeFragment.code.replaceAll("\n", "\n\t");
+            template.add("code", statementCodeFragment + "\r\n");
         }
 
         // having visited the whole tree, we add all declarations we found
@@ -576,6 +577,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                     ctx.start.getLine(),
                     new CodeFragment("", argument.nameInCode));
 
+            variableFromArgument.code = "\t" + variableFromArgument.code.replaceAll("\n", "\n\t");
 //            VariableInfo createdVariable = new VariableInfo(argument.nameInCode + "_var", argument.type);
 //            ST variableTemplate = templates.getInstanceOf("DeclarationAndAssignment");
 //            variableTemplate.add("memory_register", createdVariable.nameInCode);
@@ -631,7 +633,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         // this forgets all variables declared in the block
         variables.pop();
-        return new CodeFragment(template.render());
+        return new CodeFragment("\t" + template.render().replaceAll("\n", "\n\t"));
     }
 
     @Override
