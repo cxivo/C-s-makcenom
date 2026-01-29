@@ -538,6 +538,13 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitFunctionDefinition(C_s_makcenomParser.FunctionDefinitionContext ctx) {
+        // no functions inside one another!!
+        if (currentFunction != null) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Nepodporujeme vnorené funkcie! Dajte funkciu \"" + ctx.name.getText() + "\" inam");
+            return new CodeFragment();
+        }
+
         // add to template
         ST functionTemplate = templates.getInstanceOf("FunctionDefinition");
 
