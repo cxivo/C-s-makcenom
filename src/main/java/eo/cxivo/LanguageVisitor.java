@@ -612,13 +612,6 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                     new CodeFragment("", argument.nameInCode, argument.type));
 
             variableFromArgument.code = "\t" + variableFromArgument.code.replaceAll("\n", "\n\t");
-//            VariableInfo createdVariable = new VariableInfo(argument.nameInCode + "_var", argument.type);
-//            ST variableTemplate = templates.getInstanceOf("DeclarationAndAssignment");
-//            variableTemplate.add("memory_register", createdVariable.nameInCode);
-//            variableTemplate.add("value_register", argument.nameInCode);
-//            variableTemplate.add("has_value", 1);
-//            variableTemplate.add("type", createdVariable.type.getNameInLLVM());
-//            variables.peek().put(ctx.VARIABLE(i).getText(), createdVariable);
 
             // add it to the code of the function
             functionTemplate.add("code", variableFromArgument);
@@ -639,6 +632,19 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         functionTemplate.add("arguments", functionInfo.arguments.stream()
                 .map(variableInfo -> variableInfo.type.getNameInLLVM() + " " + variableInfo.nameInCode)
                 .collect(Collectors.joining(", ")));
+
+        // there must be at least one return statement in this scope
+        // otherwise memory leaks from lists could happen
+        if (ctx.block().statement().stream().noneMatch(statement ->
+                statement instanceof C_s_makcenomParser.StatementWithBodyContext
+                && (((C_s_makcenomParser.StatementWithBodyContext) statement).statementBody() instanceof C_s_makcenomParser.ReturnContext
+                || ((C_s_makcenomParser.StatementWithBodyContext) statement).statementBody() instanceof C_s_makcenomParser.ReturnNothingContext)
+        )) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Funkcia \"" + ctx.name.getText() + "\" musí mať aspoň jeden NEVNORENÝ príkaz na návrat - teda, mimo cyklov a podmienok. " +
+                    "Potrebujeme nejak zabezpečiť, že funkcia vždy vráti.");
+            return new CodeFragment();
+        }
 
         // add code inside the function
         CodeFragment code = visit(ctx.block());
