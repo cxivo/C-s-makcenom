@@ -127,21 +127,42 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             // for all parts of the array
             for (int i = 0; context.expr(i) != null; i++) {
                 if (context.expr(i).array_expr() == null) {
-                    errorCollector.add("Problém na riadku " + context.getStart().getLine()
-                            + ": Tabuľka na pravej strane má menej rozmerov než by mala mať");
-                    return new TableRepresentation();
+                    // it is possible that the user is assigning a different table
+                    CodeFragment code = visit(context.expr(i));
+
+                    // NOW check the type
+                    if (!code.type.equals(mustBeType)) {
+                        // nope, it's not correct
+                        errorCollector.add("Problém na riadku " + context.getStart().getLine()
+                                + ": Tabuľka na pravej strane má menej rozmerov než by mala mať");
+                        return new TableRepresentation();
+                    }
+
+                    // if everything checks out, create a dummy array of the correct size
+                    String dummy = mustBeType.getBaseTypeNameInLLVM() + " 0";
+                    for (int j = mustBeType.tableLengths.size() - 1; j > 0; j--) {
+                        // create a dummy type
+                        Type layerType = Type.copyOf(mustBeType);
+                        layerType.tableLengths = layerType.tableLengths.subList(j, mustBeType.tableLengths.size());
+
+                        dummy = layerType.getNameInLLVM() + "["
+                                + String.join(", ", Collections.nCopies(layerType.tableLengths.getFirst(), dummy)) + "]";
+                    }
+
+                    constantPartOfArray.add(dummy);
+                    tableRepresentation.calculations.add(new ArrayAssignmentTemplate(code, i));
+                } else {
+                    // recursively visit square bracketed
+                    TableRepresentation part = createTableConstant(context.expr(i).array_expr(), innerType);
+
+                    // add the position in the array
+                    final int finalI = i;
+                    part.calculations.forEach(c -> c.position.addFirst(finalI));
+
+                    // collect everything generated
+                    constantPartOfArray.add(part.arrayConstant);
+                    tableRepresentation.calculations.addAll(part.calculations);
                 }
-
-                // recursively visit
-                TableRepresentation part = createTableConstant(context.expr(i).array_expr(), innerType);
-
-                // add the position in the array
-                final int finalI = i;
-                part.calculations.forEach(c -> c.position.addFirst(finalI));
-
-                // collect everything generated
-                constantPartOfArray.add(part.arrayConstant);
-                tableRepresentation.calculations.addAll(part.calculations);
             }
         }
 
@@ -150,19 +171,15 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         return tableRepresentation;
     }
 
-//    private CodeFragment formatTableConstant(C_s_makcenomParser.Array_exprContext context, Type mustBeType) {
-//         primitives
-//        if (mustBeType.type.getFirst() == Type.Types.BOOL || mustBeType.type.getFirst() == Type.Types.CHAR || mustBeType.type.getFirst() == Type.Types.INT) {
-//
-//        }
-//
-//        // check if the user isn't pulling dirty tricks
-//        if (context.expr() == null) {
-//            errorCollector.add("Problém na riadku " + context.getStart().getLine()
-//                    + ": Do tabuľky je možné priradiť iba tabuľku, nič iné, toto nie je JavaScript");
-//            return new CodeFragment();
-//        }
-//    }
+    private int nearestLargerPowerOf2(int x) {
+        x--;
+        x |= x >> 1;
+        x |= x >> 2;
+        x |= x >> 4;
+        x |= x >> 8;
+        x |= x >> 16;
+        return x + 1;
+    }
 
     // generates the code for assignment, to be used by multiple visitors
     // need only either context or calculated value
@@ -222,6 +239,68 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             });
 
             variableAssignmentTemplate.add("code_after", particularElements.toString());
+            return new CodeFragment(variableAssignmentTemplate.render());
+
+        } else if (variableInfo.type.listDimensions > 0) {
+            // LIST
+
+            if (context.array_expr() != null) {
+                // a new list from square brackets
+                // type with one less list dimension
+                Type innerType = Type.copyOf(variableInfo.type);
+                innerType.listDimensions--;
+
+                int arraySize = context.array_expr().expr().size();
+
+                // create a new list
+                ST listCreationTemplate = templates.getInstanceOf("ListCreation");
+                listCreationTemplate.add("label_id", generateNewLabel());
+                listCreationTemplate.add("memory_register", variableInfo.nameInCode);
+                listCreationTemplate.add("has_value", arraySize > 0 ? 1 : 0);
+                listCreationTemplate.add("size", arraySize);
+                listCreationTemplate.add("capacity", nearestLargerPowerOf2(arraySize));
+                listCreationTemplate.add("type", innerType.getNameInLLVM());
+                listCreationTemplate.add("store", 1);
+
+                // for each element
+                for (int i = 0; i < arraySize; i++) {
+//                    if (!element.type.equals(variableInfo.type)) {
+//                        errorCollector.add("Problém na riadku " + context.getStart().getLine()
+//                                + ": Nekompatibilné typy (teraz to bude technické): premenná \"" + variableInfo.type.getNameInLLVM()
+//                                + " a hodnota \"" + element.type.getNameInLLVM() + "\"");
+//                        return new CodeFragment();
+//                    }
+
+                    // find the position in the array at which the element will be stored
+                    VariableInfo elementInfo = new VariableInfo(generateUniqueRegisterName(""), innerType);
+
+                    ST locateTemplate = templates.getInstanceOf("LocateListElement");
+                    locateTemplate.add("type", innerType.getNameInLLVM());
+                    locateTemplate.add("memory_register", variableInfo.nameInCode);
+                    locateTemplate.add("return_register", elementInfo.nameInCode);
+                    locateTemplate.add("index", i);
+
+                    // recursion, this will make an assignment to the correct place in our array
+                    CodeFragment element = assignment(elementInfo, context.array_expr().expr(i), line, null, false);
+
+                    locateTemplate.add("code_after", element);
+
+                    listCreationTemplate.add("code_after", locateTemplate.render());
+                }
+
+                return new CodeFragment(listCreationTemplate.render());
+            } else {
+                // copy and add a reference
+                ST listReassignTemplate = templates.getInstanceOf("ListReassign");
+                listReassignTemplate.add("label_id", generateNewLabel());
+                listReassignTemplate.add("layers", variableInfo.type.listDimensions - 1);
+                CodeFragment newList = visit(context);
+                listReassignTemplate.add("new_register", newList.resultRegisterName);
+                listReassignTemplate.add("calculate_new", newList);
+                listReassignTemplate.add("memory_register", variableInfo.nameInCode);
+
+                return new CodeFragment(listReassignTemplate.render());
+            }
         } else {
             // regular integers and bools
             CodeFragment value = visit(context);
@@ -229,9 +308,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             variableAssignmentTemplate.add("type", variableInfo.type.getNameInLLVM());
             variableAssignmentTemplate.add("compute_value", value);
             variableAssignmentTemplate.add("value_register", value.resultRegisterName);
+            return new CodeFragment(variableAssignmentTemplate.render());
         }
-
-        return new CodeFragment(variableAssignmentTemplate.render());
     }
 
 
@@ -247,12 +325,23 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         declarationTemplate.add("type", type.getNameInLLVM());
 
-        // allocate space for it TODO only primitives and tables
+        // allocate space for it
         String registerName = generateUniqueRegisterName(name);
         VariableInfo variableInfo = new VariableInfo(registerName, type);
         variables.peek().put(name, variableInfo);
 
         declarationTemplate.add("memory_register", registerName);
+
+        // create a default value
+        if (type.listDimensions > 0) {
+            // start with empty list
+            ST listCreationTemplate = templates.getInstanceOf("ListCreation");
+            listCreationTemplate.add("label_id", generateNewLabel());
+            listCreationTemplate.add("memory_register", registerName);
+            listCreationTemplate.add("store", 1);
+
+            declarationTemplate.add("code_after", listCreationTemplate.render());
+        }
 
         // calculate initial value of the variable
         if (context != null || calculatedValue != null) {
@@ -281,6 +370,9 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             template.add("code", statementCodeFragment + "\r\n");
         }
 
+        // no need to garbage collect, the whole program ends and the OS deals with it.
+        // it would be a waste to call free() a bazillion times when the whole program's memory get freed
+
         // having visited the whole tree, we add all declarations we found
         for (var declaration: declarations) {
             template.add("declarations", declaration+ "\r\n\r\n");
@@ -301,7 +393,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitComment(C_s_makcenomParser.CommentContext ctx) {
-        return new CodeFragment(";" + toLowerCaseASCII(ctx.COMMENT().getText()));
+        return new CodeFragment("; " + toLowerCaseASCII(ctx.COMMENT().getText()).replaceAll("\n", ""));
     }
 
     @Override
@@ -444,7 +536,13 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitProcedureCall(C_s_makcenomParser.ProcedureCallContext ctx) {
-       return visit(ctx.function_expr());
+        // check whether a non-void function is called
+        if (functions.get(ctx.function_expr().name.getText().toLowerCase()).returnType.primitive != Type.Primitive.VOID) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Nie je dovolené ignorovať výsledok funkcií, čo niečo vracajú!");
+            return new CodeFragment();
+        }
+        return visit(ctx.function_expr());
     }
 
     @Override
@@ -515,6 +613,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         // different approaches for static and dynamic arrays
         if (!info.type.tableLengths.isEmpty()) {
+            // TABLE
             ST tableTemplate = templates.getInstanceOf("SetTableElement");
             tableTemplate.add("memory_register", info.nameInCode);
             tableTemplate.add("type", info.type.getNameInLLVM());
@@ -561,8 +660,55 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             }
 
             return new CodeFragment(tableTemplate.render());
+        } else if (info.type.listDimensions > 0) {
+            // LIST
+            // copy of the type
+            Type innerType = new Type(info.type.primitive);
+            innerType.tableLengths.addAll(info.type.tableLengths);
+
+            // index
+            List<CodeFragment> indexes;
+
+            if (ctx.index != null) {
+                // simple variable
+                indexes = List.of(visitVariableFromMorePlaces(ctx.index.getText(), ctx.getStart().getLine()));
+            } else {
+                // expression, possibly multidimensional
+                // visit all
+                indexes = ctx.num_expr().stream().map(this::visit).toList();
+            }
+
+            // do multiple list accesses
+            String lastPointer = info.nameInCode;
+            StringBuilder elementLocation = new StringBuilder();
+            for (CodeFragment indexCode : indexes) {
+                // drop down the correct number of dimensions
+                innerType.listDimensions--;
+
+                ST getListElementTemplate = templates.getInstanceOf("GetListElement");
+                getListElementTemplate.add("calculate_index", indexCode);
+                getListElementTemplate.add("index", indexCode.resultRegisterName);
+                getListElementTemplate.add("type", innerType.getNameInLLVM());
+                getListElementTemplate.add("label_id", generateNewLabel());
+                getListElementTemplate.add("memory_register", lastPointer);
+
+                // now make a new register for the inner array
+                lastPointer = generateUniqueRegisterName("");
+                getListElementTemplate.add("return_register", lastPointer);
+
+                elementLocation.append(getListElementTemplate.render());
+            }
+
+            // in lastPointer is the pointer to the correct place
+            VariableInfo innerInfo = new VariableInfo(lastPointer, innerType);
+            CodeFragment assign = assignment(innerInfo, ctx.expr(), ctx.getStart().getLine(), null, false);
+
+            // just gluing these together is enough
+            return new CodeFragment(elementLocation.toString() + assign);
         } else {
-            return null;
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Indexovať sa dá do tabuľky a zoznamu, nie do " + info.type.getNameInLLVM());
+            return new CodeFragment();
         }
     }
 

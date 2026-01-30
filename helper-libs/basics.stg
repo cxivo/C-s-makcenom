@@ -1,6 +1,7 @@
 group LLVM;
 
 import "inputAndOutput.stg"
+import "lists.stg"
 
 // the base of every program
 base(code, declarations) ::= <<
@@ -8,6 +9,7 @@ base(code, declarations) ::= <<
 declare i32 @printf(ptr, ...)
 declare i32 @putchar(i32)
 declare ptr @malloc(i32)
+declare ptr @calloc(i32, i32)
 declare void @free(ptr)
 
 ; library
@@ -16,6 +18,55 @@ declare i32 @print_true()
 declare i32 @print_false()
 declare i32 @print_newline()
 declare i32 @print_string(ptr)
+
+; i32 size, i32 capacity, i32 reference count, ptr array itself
+%ListType = type {i32, i32, i32, ptr}
+
+define void @decrement_and_garbage_collect(ptr %list, i32 %layer) {
+    ; decrement old list's reference counter
+    %count_ptr = getelementptr %ListType, ptr %list, i32 0, i32 2
+    %count = load i32, ptr %count_ptr
+    %count_dec = sub i32 %count, 1
+    store i32 %count_dec, ptr %count_ptr
+
+    %is_zero = icmp eq i32 %count_dec, 0
+
+    br i1 %is_zero, label %remove, label %still_used
+
+; garbage collection itself
+remove:
+    %array_ptr = getelementptr %ListType, ptr %list, i32 0, i32 3
+    %array = load ptr, ptr %array_ptr
+    %size_ptr = getelementptr %ListType, ptr %list, i32 0, i32 0
+    %size = load i32, ptr %size_ptr
+    %layer_dec = sub i32 %layer, 1
+
+    %is_last_layer = icmp eq i32 %layer, 0
+    br i1 %is_last_layer, label %at_the_end, label %cycle
+
+; if has sublists
+cycle:
+    %i = phi i32 [0, %remove], [%i_inc, %iterate]
+    %done = icmp sge i32 %i, %size
+    br i1 %done, label %at_the_end, label %iterate
+iterate:
+    %child_ptr = getelementptr ptr, ptr %array, i32 %i
+    %child = load ptr, ptr %child_ptr
+
+    call void @decrement_and_garbage_collect(ptr %child, i32 %layer_dec)
+
+    %i_inc = add i32 %i, 1
+    br label %cycle
+
+; remove the list itself
+at_the_end:
+    call void @free(ptr %array)
+    call void @free(ptr %list)
+    ret void
+
+still_used:
+    ret void
+}
 
 <declarations>
 

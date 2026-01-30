@@ -35,5 +35,4 @@ Funkcia poľovačka vracajúca tabuľku celých čísel o veľkosti 3 berie tabu
 Majme tabuľku celých čísel o veľkosti 3 výplaty2, ktorá bude Poľovačka (výplaty).
 Vypíš prvok zoznamu výplaty2 na pozícii (1) a odriadkuj.
 
-(Majme zoznam celých čísel výšky, ktorý bude [10, 11, 12, 13].)
-(Majme zoznam celých čísel šírky, ktorý bude výšky.)
+Majme zoznam celých čísel výšky.
