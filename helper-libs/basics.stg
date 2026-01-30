@@ -73,8 +73,7 @@ still_used:
 define i32 @main() {
 start:
 <code>
-
-ret i32 0
+    ret i32 0
 }
 >>
 
@@ -107,6 +106,11 @@ SetTableElement(memory_register, type, base_type, label_id, index_registers, cal
 <calculate_index>
 %element_pos_<label_id> = getelementptr <type>, ptr <memory_register>, i32 0, <index_registers>
 store <base_type> <value_register>, ptr %element_pos_<label_id>
+>>
+
+LocateArrayElement(memory_register, type, index_registers, calculate_index, return_register) ::= <<
+<calculate_index>
+<return_register> = getelementptr <type>, ptr <memory_register>, <index_registers>
 >>
 
 GetFromVariable(return_register, memory_register, type) ::= <<

@@ -52,11 +52,11 @@ call void @decrement_and_garbage_collect(ptr %deassigned_<label_id>, i32 <layers
 >>
 
 GetListElement(memory_register, type, label_id, index, calculate_index, return_register) ::= <<
-%list_ptr_array_<label_id> = getelementptr %ListType, ptr <memory_register>, i32 0, i32 3
-%list_<label_id> = load ptr, ptr %list_ptr_array_<label_id>
+%list_info_<label_id> = load %ListType, ptr <memory_register>
+%array_ptr_<label_id> = getelementptr %ListType, ptr %list_info_<label_id>, i32 0, i32 3
+%array_<label_id> = load ptr, ptr %array_ptr_<label_id>
 <calculate_index>
-%element_pos_<label_id> = getelementptr <type>, ptr %list_<label_id>, i32 <index>
-<return_register> = load <type>, ptr %element_pos_<label_id>
+<return_register> = getelementptr <type>, ptr %array_<label_id>, i32 <index>
 >>
 
 SetListElement(memory_register, type, label_id, index, calculate_index, calculate_value, value_register) ::= <<
@@ -66,9 +66,4 @@ SetListElement(memory_register, type, label_id, index, calculate_index, calculat
 <calculate_index>
 %element_pos_<label_id> = getelementptr <type>, ptr %list_<label_id>, i32 <index>
 store <type> <value_register>, ptr %element_pos_<label_id>
->>
-
-LocateListElement(memory_register, type, return_register, index, code_after) ::= <<
-<return_register> = getelementptr <type>, ptr <memory_register>, i32 <index>
-<code_after>
 >>

@@ -40,14 +40,18 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         return variables.stream().anyMatch(map -> map.containsKey(name.toLowerCase()));
     }
 
-    private VariableInfo getVariableInfo(String name) {
+    private VariableInfo getVariableInfo(String name, int line) {
         // search in defined variables
         for (HashMap<String, VariableInfo> map: variables) {
             if (map.containsKey(name.toLowerCase())) {
                 return map.get(name.toLowerCase());
             }
         }
-        return null;
+
+        errorCollector.add("Problém na riadku " + line
+                + ": Neznámy identifikátor \"" + name + "\" (inak, v Č treba pred použitím deklarovať)");
+
+        return new VariableInfo("", Type.VOID);
     }
 
     public LanguageVisitor(ErrorCollector errorCollector) {
@@ -171,6 +175,18 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         return tableRepresentation;
     }
 
+    private CodeFragment loadVariableIntoRegister(VariableInfo variable) {
+        ST getFromVariableTemplate = templates.getInstanceOf("GetFromVariable");
+
+        getFromVariableTemplate.add("memory_register", variable.nameInCode);
+        getFromVariableTemplate.add("type", variable.type.getNameInLLVM());
+        String uniqueName = generateUniqueRegisterName("");
+        getFromVariableTemplate.add("return_register", uniqueName);
+
+        return new CodeFragment(getFromVariableTemplate.render(), uniqueName, variable.type);
+    }
+
+
     private int nearestLargerPowerOf2(int x) {
         x--;
         x |= x >> 1;
@@ -274,18 +290,16 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                     // find the position in the array at which the element will be stored
                     VariableInfo elementInfo = new VariableInfo(generateUniqueRegisterName(""), innerType);
 
-                    ST locateTemplate = templates.getInstanceOf("LocateListElement");
+                    ST locateTemplate = templates.getInstanceOf("LocateArrayElement");
                     locateTemplate.add("type", innerType.getNameInLLVM());
                     locateTemplate.add("memory_register", variableInfo.nameInCode);
                     locateTemplate.add("return_register", elementInfo.nameInCode);
-                    locateTemplate.add("index", i);
+                    locateTemplate.add("index_registers", "i32 " + i);
 
                     // recursion, this will make an assignment to the correct place in our array
                     CodeFragment element = assignment(elementInfo, context.array_expr().expr(i), line, null, false);
 
-                    locateTemplate.add("code_after", element);
-
-                    listCreationTemplate.add("code_after", locateTemplate.render());
+                    listCreationTemplate.add("code_after", locateTemplate.render() + "\r\n" + element);
                 }
 
                 return new CodeFragment(listCreationTemplate.render());
@@ -302,8 +316,14 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 return new CodeFragment(listReassignTemplate.render());
             }
         } else {
-            // regular integers and bools
+            // regular integers and bools and whole tables
             CodeFragment value = visit(context);
+            if (!value.type.equals(variableInfo.type)) {
+                errorCollector.add("Problém na riadku " + context.getStart().getLine()
+                        + ": Nekompatibilné typy: premenná vyžaduje typ \"" + variableInfo.type.getNameInLLVM() + "\"");
+                return new CodeFragment();
+            }
+
             variableAssignmentTemplate.add("memory_register", variableInfo.nameInCode);
             variableAssignmentTemplate.add("type", variableInfo.type.getNameInLLVM());
             variableAssignmentTemplate.add("compute_value", value);
@@ -350,7 +370,6 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         return new CodeFragment(declarationTemplate.render());
     }
-
 
 
     ///////////////////////////////////////////////
@@ -449,7 +468,6 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitInput(C_s_makcenomParser.InputContext ctx) {
-
         return null;
     }
 
@@ -584,137 +602,14 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     }
 
     @Override
-    public CodeFragment visitVariableAssignment(C_s_makcenomParser.VariableAssignmentContext ctx) {
-        // get the location of the variable, so stuff can be stored inside
-        String variableName = ctx.VARIABLE().getText();
-        VariableInfo info = getVariableInfo(variableName);
-
-        // does it exist?
-        if (info == null) {
-            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
-                    + ": Neznáma premenná \"" + variableName + "\" (inak, v Č treba pred použitím deklarovať)");
-            return new CodeFragment();
-        } else {
-            return assignment(info, ctx.expr(), ctx.start.getLine(), null, ctx.LOGIC_ASSIGNMENT() != null);
-        }
-    }
-
-    @Override
-    public CodeFragment visitArrayElementAssignment(C_s_makcenomParser.ArrayElementAssignmentContext ctx) {
-        String arrayName = ctx.array.getText();
-
-        // get the location of the variable, so stuff can be stored inside
-        VariableInfo info = getVariableInfo(arrayName);
-        if (info == null) {
-            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
-                    + ": Neznáme pole \"" + arrayName + "\" (inak, v Č treba pred použitím deklarovať)");
-            return new CodeFragment();
-        }
-
-        // different approaches for static and dynamic arrays
-        if (!info.type.tableLengths.isEmpty()) {
-            // TABLE
-            ST tableTemplate = templates.getInstanceOf("SetTableElement");
-            tableTemplate.add("memory_register", info.nameInCode);
-            tableTemplate.add("type", info.type.getNameInLLVM());
-            tableTemplate.add("base_type", info.type.getBaseTypeNameInLLVM());
-            tableTemplate.add("label_id", generateNewLabel());
-
-            // input
-            CodeFragment input = visit(ctx.expr());
-
-
-            tableTemplate.add("calculate_value", input);
-            tableTemplate.add("value_register", input.resultRegisterName);
-
-            // copy of the type
-            Type innerType = new Type(info.type.primitive);
-            innerType.tableLengths.addAll(info.type.tableLengths);
-
-            // index
-            if (ctx.index != null) {
-                // simple variable
-                CodeFragment indexCode = visitVariableFromMorePlaces(ctx.index.getText(), ctx.getStart().getLine());
-                tableTemplate.add("calculate_index", indexCode);
-                tableTemplate.add("index_registers", "i32 " + indexCode.resultRegisterName);
-
-                // drop down one dimension
-                innerType.tableLengths.removeFirst();
-            } else {
-                // expression, possibly multidimensional
-                // visit all
-                List<CodeFragment> indexCodes = ctx.num_expr().stream().map(this::visit).toList();
-
-                tableTemplate.add("calculate_index", String.join("\r\n", indexCodes.stream().map(CodeFragment::toString).toList()));
-                tableTemplate.add("index_registers", String.join(", ", indexCodes.stream().map(codeFragment -> "i32 " + codeFragment.resultRegisterName).toList()));
-
-                // drop down the correct number of dimensions
-                ctx.num_expr().forEach(x -> innerType.tableLengths.removeFirst());
-            }
-
-            if (!innerType.equals(input.type)) {
-                errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
-                        + ": Nekompatibilné typy (teraz to bude technické): ľavý \"" + innerType.getNameInLLVM()
-                        + " a pravý \"" + input.type.getNameInLLVM() + "\"");
-                return new CodeFragment();
-            }
-
-            return new CodeFragment(tableTemplate.render());
-        } else if (info.type.listDimensions > 0) {
-            // LIST
-            // copy of the type
-            Type innerType = new Type(info.type.primitive);
-            innerType.tableLengths.addAll(info.type.tableLengths);
-
-            // index
-            List<CodeFragment> indexes;
-
-            if (ctx.index != null) {
-                // simple variable
-                indexes = List.of(visitVariableFromMorePlaces(ctx.index.getText(), ctx.getStart().getLine()));
-            } else {
-                // expression, possibly multidimensional
-                // visit all
-                indexes = ctx.num_expr().stream().map(this::visit).toList();
-            }
-
-            // do multiple list accesses
-            String lastPointer = info.nameInCode;
-            StringBuilder elementLocation = new StringBuilder();
-            for (CodeFragment indexCode : indexes) {
-                // drop down the correct number of dimensions
-                innerType.listDimensions--;
-
-                ST getListElementTemplate = templates.getInstanceOf("GetListElement");
-                getListElementTemplate.add("calculate_index", indexCode);
-                getListElementTemplate.add("index", indexCode.resultRegisterName);
-                getListElementTemplate.add("type", innerType.getNameInLLVM());
-                getListElementTemplate.add("label_id", generateNewLabel());
-                getListElementTemplate.add("memory_register", lastPointer);
-
-                // now make a new register for the inner array
-                lastPointer = generateUniqueRegisterName("");
-                getListElementTemplate.add("return_register", lastPointer);
-
-                elementLocation.append(getListElementTemplate.render());
-            }
-
-            // in lastPointer is the pointer to the correct place
-            VariableInfo innerInfo = new VariableInfo(lastPointer, innerType);
-            CodeFragment assign = assignment(innerInfo, ctx.expr(), ctx.getStart().getLine(), null, false);
-
-            // just gluing these together is enough
-            return new CodeFragment(elementLocation.toString() + assign);
-        } else {
-            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
-                    + ": Indexovať sa dá do tabuľky a zoznamu, nie do " + info.type.getNameInLLVM());
-            return new CodeFragment();
-        }
-    }
-
-    @Override
-    public CodeFragment visitCharOfTextAssignment(C_s_makcenomParser.CharOfTextAssignmentContext ctx) {
-        return null;
+    public CodeFragment visitAssignment(C_s_makcenomParser.AssignmentContext ctx) {
+        CodeFragment left = visit(ctx.id());
+        return new CodeFragment(left.code + "\r\n" + assignment(
+                new VariableInfo(left.resultRegisterName, left.type),
+                ctx.expr(),
+                ctx.start.getLine(),
+                null,
+                ctx.LOGIC_ASSIGNMENT() != null));
     }
 
     @Override
@@ -824,39 +719,33 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitArrayElement(C_s_makcenomParser.ArrayElementContext ctx) {
-        // check if name is defined
         String arrayName = ctx.array.getText();
-        if (!isVariableNameUsed(arrayName)) {
-            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
-                    + ": Neznáma premenná \"" + arrayName + "\" (inak, v Č treba pred použitím deklarovať)");
-            return new CodeFragment();
-        }
 
         // get the location of the variable, so stuff can be stored inside
-        VariableInfo info = getVariableInfo(arrayName);
-        assert info != null;
+        VariableInfo info = getVariableInfo(arrayName, ctx.getStart().getLine());
+
+        // copy of the type
+        Type innerType = new Type(info.type.primitive);
+        innerType.tableLengths.addAll(info.type.tableLengths);
 
         // different approaches for static and dynamic arrays
         if (!info.type.tableLengths.isEmpty()) {
-            ST tableTemplate = templates.getInstanceOf("GetTableElement");
+        // TABLE
+            ST tableTemplate = templates.getInstanceOf("LocateArrayElement");
             tableTemplate.add("memory_register", info.nameInCode);
+            tableTemplate.add("index_registers", "i32 0, ");  // because we aren't in an array of arrays
             tableTemplate.add("type", info.type.getNameInLLVM());
-            tableTemplate.add("label_id", generateNewLabel());
 
-            // copy of the type
-            Type innerType = new Type(info.type.primitive);
-            innerType.tableLengths.addAll(info.type.tableLengths);
 
             // index
             if (ctx.index != null) {
                 // simple variable
-                CodeFragment indexCode = visitVariableFromMorePlaces(ctx.index.getText(), ctx.getStart().getLine());
+                CodeFragment indexCode = loadVariableIntoRegister(getVariableInfo(ctx.index.getText(), ctx.getStart().getLine()));
                 tableTemplate.add("calculate_index", indexCode);
                 tableTemplate.add("index_registers", "i32 " + indexCode.resultRegisterName);
 
-                // base type
+                // drop down one dimension
                 innerType.tableLengths.removeFirst();
-                tableTemplate.add("base_type", innerType.getNameInLLVM());
             } else {
                 // expression, possibly multidimensional
                 // visit all
@@ -865,21 +754,60 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 tableTemplate.add("calculate_index", String.join("\r\n", indexCodes.stream().map(CodeFragment::toString).toList()));
                 tableTemplate.add("index_registers", String.join(", ", indexCodes.stream().map(codeFragment -> "i32 " + codeFragment.resultRegisterName).toList()));
 
-                // base type
-                for (int i = 0; i < ctx.num_expr().size(); i++) {
-                    // this many layers lower
-                    innerType.tableLengths.removeFirst();
-                }
-                tableTemplate.add("base_type", innerType.getNameInLLVM());
+                // drop down the correct number of dimensions
+                ctx.num_expr().forEach(x -> innerType.tableLengths.removeFirst());
             }
 
+            String uniqueRegister = generateUniqueRegisterName("");
+            tableTemplate.add("return_register", uniqueRegister);
 
-            String uniqueName = generateUniqueRegisterName("");
-            tableTemplate.add("return_register", uniqueName);
 
-            return new CodeFragment(tableTemplate.render(), uniqueName, innerType);
+            return new CodeFragment(tableTemplate.render(), uniqueRegister, innerType);
+
+
+        } else if (info.type.listDimensions > 0) {
+        // LIST
+
+            // index
+            List<CodeFragment> indexes;
+
+            if (ctx.index != null) {
+                // simple variable
+                indexes = List.of(loadVariableIntoRegister(getVariableInfo(ctx.index.getText(), ctx.getStart().getLine())));
+            } else {
+                // expression, possibly multidimensional
+                // visit all
+                indexes = ctx.num_expr().stream().map(this::visit).toList();
+            }
+
+            // do multiple list accesses
+            String lastPointer = info.nameInCode;
+            StringBuilder elementLocation = new StringBuilder();
+            for (CodeFragment indexCode : indexes) {
+                // drop down the correct number of dimensions
+                innerType.listDimensions--;
+
+                ST getListElementTemplate = templates.getInstanceOf("GetListElement");
+                getListElementTemplate.add("calculate_index", indexCode);
+                getListElementTemplate.add("index", indexCode.resultRegisterName);
+                getListElementTemplate.add("type", innerType.getNameInLLVM());
+                getListElementTemplate.add("label_id", generateNewLabel());
+                getListElementTemplate.add("memory_register", lastPointer);
+
+                // now make a new register for the inner array
+                lastPointer = generateUniqueRegisterName("");
+                getListElementTemplate.add("return_register", lastPointer);
+
+                elementLocation.append(getListElementTemplate.render());
+            }
+
+            // in lastPointer is the pointer to the correct place
+            // just gluing these together is enough
+            return new CodeFragment(elementLocation.toString(), lastPointer, innerType);
         } else {
-            return null;
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Indexovať sa dá do tabuľky a zoznamu, nie do " + info.type.getNameInLLVM());
+            return new CodeFragment();
         }
     }
 
@@ -888,38 +816,18 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         return null;
     }
 
-    private CodeFragment visitVariableFromMorePlaces(String variableName, int line) {
-        ST getFromVariableTemplate = templates.getInstanceOf("GetFromVariable");
-
-        // get the location of the variable, so stuff can be stored inside
-        VariableInfo info = getVariableInfo(variableName);
-        if (info == null) {
-            errorCollector.add("Problém na riadku " + line
-                    + ": Neznáma premenná \"" + variableName + "\", treba ju definovať");
-            return new CodeFragment();
-        }
-        getFromVariableTemplate.add("memory_register", info.nameInCode);
-
-        getFromVariableTemplate.add("type", info.type.getNameInLLVM());
-        String uniqueName = generateUniqueRegisterName("");
-        getFromVariableTemplate.add("return_register", uniqueName);
-
-        return new CodeFragment(getFromVariableTemplate.render(), uniqueName, info.type);
-    }
-
     @Override
     public CodeFragment visitVariable(C_s_makcenomParser.VariableContext ctx) {
-        return visitVariableFromMorePlaces(ctx.VARIABLE().getText(), ctx.getStart().getLine());
+        VariableInfo info = getVariableInfo(ctx.VARIABLE().getText(), ctx.getStart().getLine());
+        return new CodeFragment("", info.nameInCode, info.type);
     }
 
     @Override
     public CodeFragment visitExpr(C_s_makcenomParser.ExprContext ctx) {
-        CodeFragment codeFragment = null;
-
         if (ctx.num_expr() != null) {
-            codeFragment = visit(ctx.num_expr());
+            return visit(ctx.num_expr());
         } else if (ctx.logic_expr() != null) {
-            codeFragment = visit(ctx.logic_expr());
+            return visit(ctx.logic_expr());
         } else if (ctx.CHARACTER() != null) {
             // all chars should be of the format "'c'", so we need the character on position 1
             int character = ctx.CHARACTER().getText().charAt(1);
@@ -932,12 +840,16 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             }
 
             // once again, we convert the character to a number and pass it directly as an "output register"
-            codeFragment = new CodeFragment("", Integer.toString(character), Type.CHAR);
+            return new CodeFragment("", Integer.toString(character), Type.CHAR);
         } else if (ctx.function_expr() != null) {
-            codeFragment = visit(ctx.function_expr());
-        } // TODO
-
-        return codeFragment;
+            return visit(ctx.function_expr());
+        } else {
+            // Arrays
+            // this is left unused, since the compiler deals with arrays differently based on
+            // whether the destination is a static or a dynamic array
+            // this error will be dealt with elsewhere
+            return new CodeFragment();
+        }
     }
 
     @Override
@@ -947,8 +859,9 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitIdentifier(C_s_makcenomParser.IdentifierContext ctx) {
-        // TODO
-        return visit(ctx.id());
+        CodeFragment place = visit(ctx.id());
+        CodeFragment loaded = loadVariableIntoRegister(new VariableInfo(place.resultRegisterName, place.type));
+        return new CodeFragment(place.code + "\r\n" + loaded.code, loaded.resultRegisterName, loaded.type);
     }
 
     @Override
@@ -1145,8 +1058,9 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitLogicIdentifier(C_s_makcenomParser.LogicIdentifierContext ctx) {
-        // TODO
-        return visit(ctx.id());
+        CodeFragment place = visit(ctx.id());
+        CodeFragment loaded = loadVariableIntoRegister(new VariableInfo(place.resultRegisterName, place.type));
+        return new CodeFragment(place.code + "\r\n" + loaded.code, loaded.resultRegisterName, loaded.type);
     }
 
     @Override
@@ -1156,7 +1070,10 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitArray_expr(C_s_makcenomParser.Array_exprContext ctx) {
-        return null;
+        // this is left unused, since the compiler deals with arrays differently based on
+        // whether the destination is a static or a dynamic array
+        // this error will be dealt with elsewhere
+        return new CodeFragment();
     }
 
 }
