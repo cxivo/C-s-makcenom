@@ -19,7 +19,6 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     private final HashMap<String, FunctionInfo> functions = new HashMap<>();
     private FunctionInfo currentFunction = null;
 
-    private int registerIndex = 0;
     private int labelIndex = 0;
 
     // from https://www.baeldung.com/java-remove-accents-from-text
@@ -29,9 +28,9 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     private String generateUniqueRegisterName(String originalName) {
         if (originalName.isEmpty()) {
-            return "%reg_" + registerIndex++;
+            return "%reg_" + labelIndex++;
         } else {
-            return "%" + toLowerCaseASCII(originalName) + "_" + registerIndex++;
+            return "%" + toLowerCaseASCII(originalName) + "_" + labelIndex++;
         }
     }
 
