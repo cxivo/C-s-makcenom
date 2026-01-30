@@ -90,15 +90,15 @@ array_expr
     ;
 
 type
-    : INT | BOOL | STRING | CHAR | LIST of_type | TABLE of_type OF_SIZE NUMBER (MULTIPLICATION NUMBER)*
+    : INT | BOOL | STRING | CHAR | LIST OF_LISTS* (of_primitives | OF_STRINGS) | TABLE of_primitives OF_SIZE NUMBER (MULTIPLICATION NUMBER)*
     ;
 
 input_type
     : INT | BOOL | LINE | WORD | CHAR
     ;
 
-of_type
-    : OF_INTS | OF_BOOLS | OF_STRINGS | OF_CHARS | OF_LISTS of_type
+of_primitives
+    : OF_INTS | OF_BOOLS | OF_CHARS
     ;
 
 

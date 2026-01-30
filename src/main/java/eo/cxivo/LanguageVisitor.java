@@ -2,10 +2,7 @@ package eo.cxivo;
 
 import org.stringtemplate.v4.*;
 import java.text.Normalizer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Stack;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -79,8 +76,12 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         List<String> constantPartOfArray = new ArrayList<>();
         TableRepresentation tableRepresentation = new TableRepresentation();
 
+        // type with one less table dimension
+        Type innerType = new Type(mustBeType.primitive);
+        innerType.tableLengths = new ArrayList<>(mustBeType.tableLengths);
+        innerType.tableLengths.removeFirst();
 
-        if (mustBeType.table_size.size() == 1) {
+        if (mustBeType.tableLengths.size() == 1) {
             // go through the array and visit all elements
             for (int i = 0; context.expr(i) != null; i++) {
                 // we should be only expecting other types of expressions according to our type
@@ -90,31 +91,38 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                     return new TableRepresentation();
                 }
 
+                CodeFragment element = visit(context.expr(i));
+
+                // test if they are the correct type
+                if (!element.type.equals(innerType)) {
+                    errorCollector.add("Problém na riadku " + context.getStart().getLine()
+                            + ": Nekompatibilné typy (teraz to bude technické): premenná \"" + innerType.getNameInLLVM()
+                            + " a hodnota \"" + element.type.getNameInLLVM() + "\"");
+                    return new TableRepresentation();
+                }
+
                 // this tests for constants, which can just be plopped into the LLVM array constant
                 if (context.expr(i).CHARACTER() != null
                         || (context.expr(i).num_expr() != null && context.expr(i).num_expr() instanceof C_s_makcenomParser.NumberContext)
                         || (context.expr(i).logic_expr() != null && context.expr(i).logic_expr() instanceof C_s_makcenomParser.LogicalValueContext)) {
-                    CodeFragment code = visit(context.expr(i));
+
 
                     // this holds the value, and there is no code
-                    constantPartOfArray.add(mustBeType.getBaseTypeNameInLLVM() + " " + code.resultRegisterName);
+                    constantPartOfArray.add(innerType.getNameInLLVM() + " " + element.resultRegisterName);
                 } else {
                     // we need a different approach
                     // we add a zero or whatever to the constant array
-                    constantPartOfArray.add(mustBeType.getBaseTypeNameInLLVM() + " 0");
+                    constantPartOfArray.add(innerType.getNameInLLVM() + " 0");
 
                     // and we add the code to set the position to the correct value
-                    tableRepresentation.calculations.add(new ArrayAssignmentTemplate(visit(context.expr(i)), i));
+                    tableRepresentation.calculations.add(new ArrayAssignmentTemplate(element, i));
 
                     // the setting itself will be done later
                 }
             }
         } else {
             // recursion into the table!
-            // type with one less table dimension
-            Type innerType = new Type(mustBeType.type);
-            innerType.table_size = new ArrayList<>(mustBeType.table_size);
-            innerType.table_size.removeFirst();
+
 
             // for all parts of the array
             for (int i = 0; context.expr(i) != null; i++) {
@@ -160,7 +168,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     // need only either context or calculated value
     private CodeFragment assignment(VariableInfo variableInfo, C_s_makcenomParser.ExprContext context, int line, CodeFragment calculatedValue, boolean mustBeBool) {
         // just for beauty, enforce correct usage of booleans
-        if (mustBeBool && variableInfo.type.type.getFirst() != Type.Types.BOOL) {
+        if (mustBeBool && variableInfo.type.primitive != Type.Primitive.BOOL) {
             errorCollector.add("Problém na riadku " + line
                     + ": Pri \"platí ak\" má byť pravdivostná hodnota, nie nejaké " + context.getText());
             return new CodeFragment();
@@ -170,11 +178,21 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         if (calculatedValue != null) {
             // we use the CodeFragment
+            if (!variableInfo.type.equals(calculatedValue.type)) {
+                errorCollector.add("Problém na riadku " + context.getStart().getLine()
+                        + ": Nekompatibilné typy (teraz to bude technické): premenná \"" + variableInfo.type.getNameInLLVM()
+                        + " a hodnota \"" + calculatedValue.type.getNameInLLVM() + "\"");
+                return new CodeFragment();
+            }
+
             variableAssignmentTemplate.add("memory_register", variableInfo.nameInCode);
             variableAssignmentTemplate.add("type", variableInfo.type.getNameInLLVM());
             variableAssignmentTemplate.add("compute_value", calculatedValue);
             variableAssignmentTemplate.add("value_register", calculatedValue.resultRegisterName);
-        } else if (variableInfo.type.type.getFirst() == Type.Types.TABLE && context.array_expr() != null) {
+            return new CodeFragment(variableAssignmentTemplate.render());
+        } else if (!variableInfo.type.tableLengths.isEmpty() && context.array_expr() != null) {
+            // TABLE
+
             TableRepresentation tableRepresentation = createTableConstant(context.array_expr(), variableInfo.type);
             variableAssignmentTemplate.add("value_register", tableRepresentation.arrayConstant);
             variableAssignmentTemplate.add("memory_register", variableInfo.nameInCode);
@@ -283,7 +301,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitComment(C_s_makcenomParser.CommentContext ctx) {
-        return new CodeFragment();
+        return new CodeFragment(";" + toLowerCaseASCII(ctx.COMMENT().getText()));
     }
 
     @Override
@@ -307,7 +325,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             ifTemplate = templates.getInstanceOf("IfThen");
         }
 
-        CodeFragment logicExpression = visit(ctx.logic_expr());
+        CodeFragment logicExpression = checkBool(visit(ctx.logic_expr()), ctx.getStart().getLine());
         ifTemplate.add("compute_boolean", logicExpression);
         ifTemplate.add("boolean_register", logicExpression.resultRegisterName);
 
@@ -456,12 +474,12 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         functionTemplate.add("arguments", String.join(", ", arguments));
 
         // if not void, we add a register which will hold the result
-        if (functionInfo.returnType.type.getFirst() != Type.Types.VOID) {
+        if (functionInfo.returnType.primitive != Type.Primitive.VOID) {
             functionTemplate.add("is_not_void", 1);
             String returnRegister = generateUniqueRegisterName("");
             functionTemplate.add("destination", returnRegister);
 
-            return new CodeFragment(functionTemplate.render(), returnRegister);
+            return new CodeFragment(functionTemplate.render(), returnRegister, functionInfo.returnType);
         } else {
             return new CodeFragment(functionTemplate.render());
         }
@@ -496,7 +514,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         }
 
         // different approaches for static and dynamic arrays
-        if (info.type.type.getFirst() == Type.Types.TABLE) {
+        if (!info.type.tableLengths.isEmpty()) {
             ST tableTemplate = templates.getInstanceOf("SetTableElement");
             tableTemplate.add("memory_register", info.nameInCode);
             tableTemplate.add("type", info.type.getNameInLLVM());
@@ -510,12 +528,19 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             tableTemplate.add("calculate_value", input);
             tableTemplate.add("value_register", input.resultRegisterName);
 
+            // copy of the type
+            Type innerType = new Type(info.type.primitive);
+            innerType.tableLengths.addAll(info.type.tableLengths);
+
             // index
             if (ctx.index != null) {
                 // simple variable
                 CodeFragment indexCode = visitVariableFromMorePlaces(ctx.index.getText(), ctx.getStart().getLine());
                 tableTemplate.add("calculate_index", indexCode);
                 tableTemplate.add("index_registers", "i32 " + indexCode.resultRegisterName);
+
+                // drop down one dimension
+                innerType.tableLengths.removeFirst();
             } else {
                 // expression, possibly multidimensional
                 // visit all
@@ -523,6 +548,16 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
                 tableTemplate.add("calculate_index", String.join("\r\n", indexCodes.stream().map(CodeFragment::toString).toList()));
                 tableTemplate.add("index_registers", String.join(", ", indexCodes.stream().map(codeFragment -> "i32 " + codeFragment.resultRegisterName).toList()));
+
+                // drop down the correct number of dimensions
+                ctx.num_expr().forEach(x -> innerType.tableLengths.removeFirst());
+            }
+
+            if (!innerType.equals(input.type)) {
+                errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                        + ": Nekompatibilné typy (teraz to bude technické): ľavý \"" + innerType.getNameInLLVM()
+                        + " a pravý \"" + input.type.getNameInLLVM() + "\"");
+                return new CodeFragment();
             }
 
             return new CodeFragment(tableTemplate.render());
@@ -562,7 +597,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         // from 1 because we ignore the name of the function
         for (int i = 1; ctx.VARIABLE(i) != null; i++) {
             // but types start from 0 if the function doesn't return anything
-            int from = functionInfo.returnType.type.getFirst() == Type.Types.VOID ? 1 : 0;
+            int from = functionInfo.returnType.primitive == Type.Primitive.VOID ? 1 : 0;
 
             VariableInfo argument = new VariableInfo(
                     generateUniqueRegisterName(ctx.VARIABLE(i).getText()),
@@ -574,7 +609,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                     argument.type,
                     null,
                     ctx.start.getLine(),
-                    new CodeFragment("", argument.nameInCode));
+                    new CodeFragment("", argument.nameInCode, argument.type));
 
             variableFromArgument.code = "\t" + variableFromArgument.code.replaceAll("\n", "\n\t");
 //            VariableInfo createdVariable = new VariableInfo(argument.nameInCode + "_var", argument.type);
@@ -650,15 +685,15 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         assert info != null;
 
         // different approaches for static and dynamic arrays
-        if (info.type.type.getFirst() == Type.Types.TABLE) {
+        if (!info.type.tableLengths.isEmpty()) {
             ST tableTemplate = templates.getInstanceOf("GetTableElement");
             tableTemplate.add("memory_register", info.nameInCode);
             tableTemplate.add("type", info.type.getNameInLLVM());
             tableTemplate.add("label_id", generateNewLabel());
 
             // copy of the type
-            Type innerType = new Type(info.type.type);
-            innerType.table_size.addAll(info.type.table_size);
+            Type innerType = new Type(info.type.primitive);
+            innerType.tableLengths.addAll(info.type.tableLengths);
 
             // index
             if (ctx.index != null) {
@@ -668,7 +703,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 tableTemplate.add("index_registers", "i32 " + indexCode.resultRegisterName);
 
                 // base type
-                innerType.table_size.removeFirst();
+                innerType.tableLengths.removeFirst();
                 tableTemplate.add("base_type", innerType.getNameInLLVM());
             } else {
                 // expression, possibly multidimensional
@@ -681,7 +716,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 // base type
                 for (int i = 0; i < ctx.num_expr().size(); i++) {
                     // this many layers lower
-                    innerType.table_size.removeFirst();
+                    innerType.tableLengths.removeFirst();
                 }
                 tableTemplate.add("base_type", innerType.getNameInLLVM());
             }
@@ -690,7 +725,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             String uniqueName = generateUniqueRegisterName("");
             tableTemplate.add("return_register", uniqueName);
 
-            return new CodeFragment(tableTemplate.render(), uniqueName);
+            return new CodeFragment(tableTemplate.render(), uniqueName, innerType);
         } else {
             return null;
         }
@@ -717,7 +752,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         String uniqueName = generateUniqueRegisterName("");
         getFromVariableTemplate.add("return_register", uniqueName);
 
-        return new CodeFragment(getFromVariableTemplate.render(), uniqueName);
+        return new CodeFragment(getFromVariableTemplate.render(), uniqueName, info.type);
     }
 
     @Override
@@ -745,7 +780,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             }
 
             // once again, we convert the character to a number and pass it directly as an "output register"
-            codeFragment = new CodeFragment("", Integer.toString(character));
+            codeFragment = new CodeFragment("", Integer.toString(character), Type.CHAR);
         } else if (ctx.function_expr() != null) {
             codeFragment = visit(ctx.function_expr());
         } // TODO
@@ -768,19 +803,43 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     public CodeFragment visitNegative(C_s_makcenomParser.NegativeContext ctx) {
         ST negativeTemplate = templates.getInstanceOf("Negative");
 
-        CodeFragment inner = visit(ctx.num_expr());
+        CodeFragment inner = convertToInt(visit(ctx.num_expr()), ctx.getStart().getLine());
         negativeTemplate.add("compute_value", inner);
         negativeTemplate.add("value_register", inner.resultRegisterName);
         String uniqueName = generateUniqueRegisterName("");
         negativeTemplate.add("return_register", uniqueName);
 
-        return new CodeFragment(negativeTemplate.render(), uniqueName);
+        return new CodeFragment(negativeTemplate.render(), uniqueName, Type.INT);
     }
 
     @Override
     public CodeFragment visitNumber(C_s_makcenomParser.NumberContext ctx) {
         // hilarious hack: we place the values as the "register", because it works with our templates :P
-        return new CodeFragment("", ctx.NUMBER().getText());
+        return new CodeFragment("", ctx.NUMBER().getText(), Type.INT);
+    }
+
+    private CodeFragment convertToInt(CodeFragment code, int line) {
+        // convert characters to ints
+        switch (code.type.primitive) {
+            case Type.Primitive.CHAR -> {
+                ST template = templates.getInstanceOf("CharToInt");
+                template.add("compute_value", code);
+                template.add("value_register", code.resultRegisterName);
+                String returnRegister = generateUniqueRegisterName("converted");
+                template.add("return_register", returnRegister);
+
+                return new CodeFragment(template.render(), returnRegister, Type.INT);
+            }
+            case Type.Primitive.INT -> {
+                // no need to do anything
+                return code;
+            }
+            default -> {
+                errorCollector.add("Problém na riadku " + line
+                        + ": Tu sú operácie s celými číslami (prípadne znakmi), ale našli sme tu typ " + code.type.getNameInLLVM());
+                return new CodeFragment();
+            }
+        }
     }
 
     @Override
@@ -807,8 +866,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         BinOpTemplate.add("instruction", operator);
 
-        CodeFragment left = visit(ctx.left);
-        CodeFragment right = visit(ctx.right);
+        CodeFragment left = convertToInt(visit(ctx.left), ctx.getStart().getLine());
+        CodeFragment right = convertToInt(visit(ctx.right), ctx.getStart().getLine());
 
         BinOpTemplate.add("compute_left", left);
         BinOpTemplate.add("compute_right", right);
@@ -818,7 +877,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         String uniqueName = generateUniqueRegisterName("");
         BinOpTemplate.add("return_register", uniqueName);
 
-        return new CodeFragment(BinOpTemplate.render(), uniqueName);
+        return new CodeFragment(BinOpTemplate.render(), uniqueName, Type.INT);
     }
 
     @Override
@@ -829,26 +888,35 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     @Override
     public CodeFragment visitLogicalValue(C_s_makcenomParser.LogicalValueContext ctx) {
         // we use the same trick of just putting the value as the "output register"
-        return new CodeFragment("", ctx.val.getType() == C_s_makcenomParser.FALSE ? "0" : "1");
+        return new CodeFragment("", ctx.val.getType() == C_s_makcenomParser.FALSE ? "0" : "1", Type.BOOL);
+    }
+
+    private CodeFragment checkBool(CodeFragment code, int line) {
+        if (code.type.primitive != Type.Primitive.BOOL) {
+            errorCollector.add("Problém na riadku " + line
+                    + ": Tu sú operácie s celými číslami (prípadne znakmi), ale našli sme tu typ " + code.type.getNameInLLVM());
+            return new CodeFragment();
+        } else {
+            return code;
+        }
     }
 
     @Override
     public CodeFragment visitNegation(C_s_makcenomParser.NegationContext ctx) {
         ST negationTemplate = templates.getInstanceOf("Negation");
 
-        CodeFragment inner = visit(ctx.logic_expr());
+        CodeFragment inner = checkBool(visit(ctx.logic_expr()), ctx.getStart().getLine());
         negationTemplate.add("compute_value", inner);
         negationTemplate.add("value_register", inner.resultRegisterName);
         String uniqueName = generateUniqueRegisterName("");
         negationTemplate.add("return_register", uniqueName);
 
-        return new CodeFragment(negationTemplate.render(), uniqueName);
+        return new CodeFragment(negationTemplate.render(), uniqueName, Type.BOOL);
     }
 
     @Override
     public CodeFragment visitBinaryRelationOperation(C_s_makcenomParser.BinaryRelationOperationContext ctx) {
         ST BinOpTemplate = templates.getInstanceOf("RelationBinOp");
-        BinOpTemplate.add("type", "i32");
 
         // find out which operation we're doing
         String operator = switch(ctx.op.getType()) {
@@ -870,8 +938,11 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         BinOpTemplate.add("instruction", operator);
 
-        CodeFragment left = visit(ctx.left);
-        CodeFragment right = visit(ctx.right);
+        CodeFragment left = convertToInt(visit(ctx.left), ctx.getStart().getLine());
+        CodeFragment right = convertToInt(visit(ctx.right), ctx.getStart().getLine());
+
+        BinOpTemplate.add("type", "i32");
+
 
         BinOpTemplate.add("compute_left", left);
         BinOpTemplate.add("compute_right", right);
@@ -881,7 +952,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         String uniqueName = generateUniqueRegisterName("");
         BinOpTemplate.add("return_register", uniqueName);
 
-        return new CodeFragment(BinOpTemplate.render(), uniqueName);
+        return new CodeFragment(BinOpTemplate.render(), uniqueName, Type.BOOL);
     }
 
     @Override
@@ -906,8 +977,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         BinOpTemplate.add("instruction", operator);
 
-        CodeFragment left = visit(ctx.left);
-        CodeFragment right = visit(ctx.right);
+        CodeFragment left = checkBool(visit(ctx.left), ctx.getStart().getLine());
+        CodeFragment right = checkBool(visit(ctx.right), ctx.getStart().getLine());
 
         BinOpTemplate.add("compute_left", left);
         BinOpTemplate.add("compute_right", right);
@@ -917,7 +988,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         String uniqueName = generateUniqueRegisterName("");
         BinOpTemplate.add("return_register", uniqueName);
 
-        return new CodeFragment(BinOpTemplate.render(), uniqueName);
+        return new CodeFragment(BinOpTemplate.render(), uniqueName, Type.BOOL);
     }
 
     @Override
@@ -936,18 +1007,4 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         return null;
     }
 
-    @Override
-    public CodeFragment visitType(C_s_makcenomParser.TypeContext ctx) {
-        return null;
-    }
-
-    @Override
-    public CodeFragment visitInput_type(C_s_makcenomParser.Input_typeContext ctx) {
-        return null;
-    }
-
-    @Override
-    public CodeFragment visitOf_type(C_s_makcenomParser.Of_typeContext ctx) {
-        return null;
-    }
 }

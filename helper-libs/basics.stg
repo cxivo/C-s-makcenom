@@ -142,6 +142,16 @@ Number(const_value, return_register) ::= <<
 <return_register> = add i32 <const_value>, 0
 >>
 
+CharToInt(compute_value, value_register, return_register) ::= <<
+<compute_value>
+<return_register> = sext i8 <value_register> to i32
+>>
+
+IntToChar(compute_value, value_register, return_register) ::= <<
+<compute_value>
+<return_register> = trunc i32 <value_register> to i8
+>>
+
 // variable
 Identifier(memory_register, return_register) ::= <<
 <return_register> = load i32, i32* <memory_register>
