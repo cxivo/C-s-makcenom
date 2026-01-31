@@ -16,6 +16,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     private final HashMap<String, FunctionInfo> functions = new HashMap<>();
     private FunctionInfo currentFunction = null;
     private final List<VariableInfo> garbageCollectAfterFunction = new ArrayList<>();
+    private final Stack<String> breakLabels = new Stack<>();
+    private final Stack<String> continueLabels = new Stack<>();
 
     private int labelIndex = 0;
 
@@ -540,7 +542,59 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitForLoop(C_s_makcenomParser.ForLoopContext ctx) {
-        return null;
+        ST loopTemplate = templates.getInstanceOf("For");
+
+        String iterationVariableInCode;
+        String iterationVariable;
+
+        // either use the user provided one, or make up our own
+        if (ctx.varName != null) {
+            if (isVariableNameUsed(ctx.varName.getText())) {
+                errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                        + ": \"" + ctx.varName.getText() + "\" je už definovaná, vyberte iný názov pre premennú cyklu");
+                return new CodeFragment();
+            }
+
+            iterationVariable = ctx.varName.getText();
+            iterationVariableInCode = generateUniqueRegisterName(ctx.varName.getText());
+        } else {
+            iterationVariableInCode = generateUniqueRegisterName("iteration_variable");
+            // for the variable name, I used the code name, because you can't have variables starting with "%" in Č
+            iterationVariable = iterationVariableInCode;
+        }
+
+        variables.push(new HashMap<>());
+        variables.peek().put(iterationVariable, new VariableInfo(iterationVariableInCode, Type.INT));
+
+        CodeFragment lowerBound = convertToInt(visit(ctx.lower), ctx.getStart().getLine());
+        CodeFragment upperBound = convertToInt(visit(ctx.upper), ctx.getStart().getLine());
+
+        loopTemplate.add("iter_memory_register", iterationVariableInCode);
+        loopTemplate.add("calculate_values", lowerBound);
+        loopTemplate.add("calculate_values", upperBound);
+        loopTemplate.add("label_id", generateNewLabel());
+        loopTemplate.add("lower", lowerBound.resultRegisterName);
+        loopTemplate.add("upper", upperBound.resultRegisterName);
+
+        // generate labels
+        String breakLabel = "end_cycle_" + generateNewLabel();
+        String continueLabel = "loop_increment_" + generateNewLabel();
+        breakLabels.push(breakLabel);
+        continueLabels.push(continueLabel);
+        loopTemplate.add("end_cycle", breakLabel);
+        loopTemplate.add("loop_increment", continueLabel);
+
+
+        CodeFragment code = ctx.statementBody() != null ? visit(ctx.statementBody()) : visit(ctx.block());
+        loopTemplate.add("code", code);
+
+        // after visiting everything, pop labels
+        breakLabels.pop();
+        continueLabels.pop();
+
+        variables.pop();
+
+        return new CodeFragment(loopTemplate.render());
     }
 
     @Override
@@ -613,18 +667,29 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     }
 
     @Override
-    public CodeFragment visitEndProgram(C_s_makcenomParser.EndProgramContext ctx) {
-        return null;
-    }
-
-    @Override
     public CodeFragment visitBreak(C_s_makcenomParser.BreakContext ctx) {
-        return null;
+        ST template = templates.getInstanceOf("Branch");
+        if (breakLabels.isEmpty()) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Je možné že používaš toto slovo len z frustrácie, ale vedz, že je to kľúčové slovo v cykloch a sem nepatrí");
+            return new CodeFragment();
+        }
+
+        template.add("where", breakLabels.peek());
+        return new CodeFragment(template.render());
     }
 
     @Override
     public CodeFragment visitContinue(C_s_makcenomParser.ContinueContext ctx) {
-        return null;
+        ST template = templates.getInstanceOf("Branch");
+        if (continueLabels.isEmpty()) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Čo chceš preskočiť? Tebe preskočilo? Toto sa používa len v cykloch!");
+            return new CodeFragment();
+        }
+
+        template.add("where", continueLabels.peek());
+        return new CodeFragment(template.render());
     }
 
     private CodeFragment garbageCollectWhenReturning(VariableInfo returning) {

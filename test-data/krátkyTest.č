@@ -1,11 +1,5 @@
-
-Majme zoznam textov nápisy, ktorý bude ["Čau\n\\k\ty!", "A"].
-Prvok zoznamu nápisy na pozícii (1,1) bude 'A'.
-Pridaj do zoznamu prvok zoznamu nápisy na pozícii (1) prvok '\0'.
-Vypíš Prvok zoznamu nápisy na pozícii (1) a odriadkuj.
-Vypíš dĺžku textu prvok zoznamu nápisy na pozícii (1) a odriadkuj.
-Zmaž zo zoznamu Prvok zoznamu nápisy na pozícii (1).
-Prvok zoznamu nápisy na pozícii (1,1) bude '\0'.
-Vypíš Prvok zoznamu nápisy na pozícii (1) a odriadkuj.
-Vypíš dĺžku textu prvok zoznamu nápisy na pozícii (1) a odriadkuj.
-
+Opakuj pre i od 0 po 10: {
+    Ak i sa rovná 5 tak preskoč.
+    Vypíš i.
+    Ak i sa rovná 8 tak dlabať.
+}

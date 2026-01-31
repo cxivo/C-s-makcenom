@@ -187,41 +187,44 @@ GetFromVariable(return_register, memory_register, type) ::= <<
 >>
 
 // For loop
-For(iter_memory_register, iter_value_register, cycle_end_register, aux_register, lower, upper, cycle_body, label_id) ::= <<
+For(iter_memory_register, lower, upper, code, label_id, loop_increment, end_cycle, calculate_values) ::= <<
+<calculate_values>
 <iter_memory_register> = alloca i32
 store i32 <lower>, i32* <iter_memory_register>
 br label %cycle<label_id>
 
 cycle<label_id>:
-<iter_value_register> = load i32, i32* <iter_memory_register>
-<cycle_end_register> = icmp sgt i32 <iter_value_register>, <upper>
-br i1 <cycle_end_register>, label %endcycle<label_id>, label %iter<label_id>
+%i_<label_id> = load i32, i32* <iter_memory_register>
+%cmp_<label_id> = icmp slt i32 %i_<label_id>, <upper>
+br i1 %cmp_<label_id>, label %iter<label_id>, label %<end_cycle>
 
 iter<label_id>:
-<cycle_body>
-<aux_register> = add i32 <iter_value_register>, 1
-store i32 <aux_register>, i32* <iter_memory_register>
+<code>
+br label %<loop_increment>
+
+<loop_increment>:
+%inc_<label_id> = add i32 %i_<label_id>, 1
+store i32 %inc_<label_id>, i32* <iter_memory_register>
 br label %cycle<label_id>
 
-endcycle<label_id>:
-store i32 0, i32* <iter_memory_register>
+<end_cycle>:
 >>
 
 // If statement
 // <cmp_register> = icmp <relation> i32 <value1_register>, <value2_register>
 IfThenElse(compute_boolean, boolean_register, if_true, if_false, label_id) ::= <<
 <compute_boolean>
-br i1 <boolean_register>, label %iftrue<label_id>, label %iffalse<label_id>
+br i1 <boolean_register>, label %iftrue_<label_id>, label %iffalse_<label_id>
 
-iftrue<label_id>:
+iftrue_<label_id>:
 <if_true>
-br label %fi<label_id>
+br label %fi_<label_id>
 
-iffalse<label_id>:
+iffalse_<label_id>:
 <if_false>
-br label %fi<label_id>
+br label %fi_<label_id>
 
-fi<label_id>:
+fi_<label_id>:
 >>
 
 IfThen(compute_boolean, boolean_register, if_true, label_id) ::= <<
@@ -301,4 +304,8 @@ ret <type> <value_register>
 ReturnNothing(cleanup) ::= <<
 <cleanup>
 ret void
+>>
+
+Branch(where) ::= <<
+br label %<where>
 >>

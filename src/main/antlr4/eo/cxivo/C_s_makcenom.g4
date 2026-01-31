@@ -25,7 +25,6 @@ statementBody
     |   LOAD input_type INTO_VAR VARIABLE                                   # Input
     |   PRINT (expr) AND_PRINT_NEWLINE?                                     # Output
     |   PRINT_NEWLINE                                                       # PrintNewLine
-    |   END_PROGRAM                     # EndProgram
     |   BREAK                           # Break
     |   CONTINUE                        # Continue
     |   DONE                            # ReturnNothing
@@ -270,11 +269,11 @@ MORE_THAN_OR_EQUAL
     ;
 
 EQUALS
-    : 'sa rovná'
+    : 'sa rovná' | 'je rovné' | 'je rovný' | 'je rovná' | 'sú rovné' | 'sú rovní'
     ;
 
 NOT_EQUALS
-    : 'sa nerovná'
+    : 'sa nerovná' | 'je nerovné' | 'je nerovný' | 'je nerovná' | 'sú nerovné' | 'sú nerovní'
     ;
 
 // Control flow
@@ -321,7 +320,6 @@ TABLE: 'tabuľka' | 'tabuľku';
 OF_SIZE: 'o veľkosti' | 'o rozmere' | 'o rozmeroch';
 
 // Program flow
-END_PROGRAM: 'Koniec';
 BREAK: 'Dlabať';
 CONTINUE: 'Preskoč';
 DONE: 'Hotovo';

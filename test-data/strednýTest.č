@@ -58,3 +58,14 @@ Majme zoznam celých čísel bčko, ktorý bude listy(30).
 Vypíš prvok zoznamu bčko na pozícii (1).
 
 Majme text nápis, ktorý bude "Ahojky!".
+
+
+Majme zoznam textov nápisy, ktorý bude ["Čau\n\\k\ty!", "A"].
+Prvok zoznamu nápisy na pozícii (1,1) bude 'A'.
+Pridaj do zoznamu prvok zoznamu nápisy na pozícii (1) prvok '\0'.
+Vypíš Prvok zoznamu nápisy na pozícii (1) a odriadkuj.
+Vypíš dĺžku textu prvok zoznamu nápisy na pozícii (1) a odriadkuj.
+Zmaž zo zoznamu Prvok zoznamu nápisy na pozícii (1).
+Prvok zoznamu nápisy na pozícii (1,1) bude '\0'.
+Vypíš Prvok zoznamu nápisy na pozícii (1) a odriadkuj.
+Vypíš dĺžku textu prvok zoznamu nápisy na pozícii (1) a odriadkuj.
