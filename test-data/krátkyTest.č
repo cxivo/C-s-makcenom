@@ -38,3 +38,11 @@ Prvok zoznamu výplaty na pozícii (1) bude [99,98,97].
 
 Majme zoznam celých čísel výšky, ktorý bude [10, 11, 12, 13].
 Majme zoznam celých čísel šírky, ktorý bude výšky.
+
+Prvok zoznamu šírky na pozícii (3) bude päť krát päť.
+Vypíš prvok zoznamu šírky na pozícii (3) a odriadkuj.
+
+Majme zoznam zoznamov celých čísel dvojky, ktorý bude [[20, 21], [22, 23, 24]].
+Vypíš prvok zoznamu dvojky na pozícii (1,1) a odriadkuj.
+Prvok zoznamu dvojky na pozícii (1) bude šírky.
+Vypíš prvok zoznamu dvojky na pozícii (1,1) a odriadkuj.

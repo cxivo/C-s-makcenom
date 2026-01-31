@@ -31,12 +31,7 @@ store ptr <return_register>, ptr <memory_register>
 <code_after>
 >>
 
-ListIndex(memory_register, return_register, index, label_id, type) ::= <<
-%list_ptr_place<label_id> = getelementptr %ListType, ptr <memory_register>, i32 0, i32 3
-<return_register> = getelementptr <type>, ptr %list_ptr_place<label_id>, i32 <index>
->>
-
-// save previous list, assign new list and increment its count, decrement the previous count
+// when there's no previous list, just assign new list and increment its count
 ListAssign(memory_register, new_register, label_id, layers, calculate_new) ::= <<
 <calculate_new>
 store ptr <new_register>, ptr <memory_register>
@@ -64,18 +59,9 @@ call void @decrement_and_garbage_collect(ptr %deassigned_<label_id>, i32 <layers
 >>
 
 GetListElement(memory_register, type, label_id, index, calculate_index, return_register) ::= <<
-%list_info_<label_id> = load %ListType, ptr <memory_register>
+%list_info_<label_id> = load ptr, ptr <memory_register>
 %array_ptr_<label_id> = getelementptr %ListType, ptr %list_info_<label_id>, i32 0, i32 3
 %array_<label_id> = load ptr, ptr %array_ptr_<label_id>
 <calculate_index>
 <return_register> = getelementptr <type>, ptr %array_<label_id>, i32 <index>
->>
-
-SetListElement(memory_register, type, label_id, index, calculate_index, calculate_value, value_register) ::= <<
-%list_ptr_array_<label_id> = getelementptr %ListType, ptr <memory_register>, i32 0, i32 3
-%list_<label_id> = load ptr, ptr %list_ptr_array_<label_id>
-<calculate_value>
-<calculate_index>
-%element_pos_<label_id> = getelementptr <type>, ptr %list_<label_id>, i32 <index>
-store <type> <value_register>, ptr %element_pos_<label_id>
 >>

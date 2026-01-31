@@ -744,8 +744,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         VariableInfo info = getVariableInfo(arrayName, ctx.getStart().getLine());
 
         // copy of the type
-        Type innerType = new Type(info.type.primitive);
-        innerType.tableLengths.addAll(info.type.tableLengths);
+        Type innerType = Type.copyOf(info.type);
 
         // different approaches for static and dynamic arrays
         if (!info.type.tableLengths.isEmpty()) {
