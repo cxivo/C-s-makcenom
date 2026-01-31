@@ -15,7 +15,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     private final List<CodeFragment> declarations = new ArrayList<>();
     private final HashMap<String, FunctionInfo> functions = new HashMap<>();
     private FunctionInfo currentFunction = null;
-    private final List<VariableInfo> currentFunctionCallListArguments = new ArrayList<>();
+    private final List<VariableInfo> garbageCollectAfterFunction = new ArrayList<>();
 
     private int labelIndex = 0;
 
@@ -225,7 +225,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             variableAssignmentTemplate.add("type", variableInfo.type.getNameInLLVM());
             variableAssignmentTemplate.add("compute_value", calculatedValue);
             variableAssignmentTemplate.add("value_register", calculatedValue.resultRegisterName);
-            return new CodeFragment(variableAssignmentTemplate.render());
+            return new CodeFragment(variableAssignmentTemplate.render(), variableInfo.nameInCode, variableInfo.type);
         } else if (!variableInfo.type.tableLengths.isEmpty() && context.array_expr() != null) {
             // TABLE
 
@@ -258,7 +258,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             });
 
             variableAssignmentTemplate.add("code_after", particularElements.toString());
-            return new CodeFragment(variableAssignmentTemplate.render());
+            return new CodeFragment(variableAssignmentTemplate.render(), variableInfo.nameInCode, variableInfo.type);
 
         } else if (variableInfo.type.listDimensions > 0) {
             // LIST
@@ -298,7 +298,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                     // recursion, this will make an assignment to the correct place in our array
                     CodeFragment element = assignment(elementInfo, context.array_expr().expr(i), line, null, false, false);
 
-                    listTemplate.add("code_after", locateTemplate.render() + "\r\n" + element);
+                    listTemplate.add("code_after", "\r\n" + locateTemplate.render() + "\r\n" + element);
                 }
 
                 listCalculation = new CodeFragment(listTemplate.render(), listPointer, variableInfo.type);
@@ -328,7 +328,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             listTemplate.add("calculate_new", listCalculation);
             listTemplate.add("memory_register", variableInfo.nameInCode);
 
-            return new CodeFragment(listTemplate.render());
+            return new CodeFragment(listTemplate.render(), variableInfo.nameInCode, variableInfo.type);
         } else {
             // regular integers and bools and whole tables
             CodeFragment value = visit(context);
@@ -342,7 +342,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             variableAssignmentTemplate.add("type", variableInfo.type.getNameInLLVM());
             variableAssignmentTemplate.add("compute_value", value);
             variableAssignmentTemplate.add("value_register", value.resultRegisterName);
-            return new CodeFragment(variableAssignmentTemplate.render());
+            return new CodeFragment(variableAssignmentTemplate.render(), variableInfo.nameInCode, variableInfo.type);
         }
     }
 
@@ -367,21 +367,26 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         declarationTemplate.add("memory_register", registerName);
 
+        String returnRegister = "";
+
         // calculate initial value of the variable
         if (context != null || calculatedValue != null) {
-            declarationTemplate.add("code_after", assignment(variableInfo, context, line, calculatedValue, false, false));
+            CodeFragment assignment = assignment(variableInfo, context, line, calculatedValue, false, false);
+            returnRegister = assignment.resultRegisterName;
+            declarationTemplate.add("code_after", assignment);
         } else if (type.listDimensions > 0) {
             // create a default value - an empty list
             ST listCreationTemplate = templates.getInstanceOf("ListCreation");
             listCreationTemplate.add("label_id", generateNewLabel());
             listCreationTemplate.add("memory_register", registerName);
-            listCreationTemplate.add("return_register", generateUniqueRegisterName("list"));
+            returnRegister = generateUniqueRegisterName("list");
+            listCreationTemplate.add("return_register", returnRegister);
             listCreationTemplate.add("store", 1);
 
             declarationTemplate.add("code_after", listCreationTemplate.render());
         }
 
-        return new CodeFragment(declarationTemplate.render());
+        return new CodeFragment(declarationTemplate.render(), returnRegister, variableInfo.type);
     }
 
 
@@ -618,7 +623,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
             // what to garbage collect right after function call (and assignment)
             if (code.type.listDimensions > 0) {
-                currentFunctionCallListArguments.add(new VariableInfo(code.resultRegisterName, code.type));
+                garbageCollectAfterFunction.add(new VariableInfo(code.resultRegisterName, code.type));
             }
 
             arguments.add(functionInfo.arguments.get(i).type.getNameInLLVM() + " " + code.resultRegisterName);
@@ -653,8 +658,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         // after every function call, garbage collect all arguments
         StringBuilder garbageCollectingCode = new StringBuilder();
-        if (!currentFunctionCallListArguments.isEmpty()) {
-            for (VariableInfo register: currentFunctionCallListArguments) {
+        if (!garbageCollectAfterFunction.isEmpty()) {
+            for (VariableInfo register: garbageCollectAfterFunction) {
                 ST garbageTemplate = templates.getInstanceOf("GarbageCollect");
                 garbageTemplate.add("memory_register", register.nameInCode);
                 garbageTemplate.add("layers", register.type.listDimensions - 1);
@@ -662,7 +667,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 garbageCollectingCode.append(garbageTemplate.render()).append("\r\n");
             }
 
-            currentFunctionCallListArguments.clear();
+            garbageCollectAfterFunction.clear();
         }
 
         return new CodeFragment(assignment + garbageCollectingCode.toString());
@@ -869,7 +874,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 lastPointer = generateUniqueRegisterName("");
                 getListElementTemplate.add("return_register", lastPointer);
 
-                elementLocation.append(getListElementTemplate.render());
+                elementLocation.append(getListElementTemplate.render()).append("\r\n");
             }
 
             // in lastPointer is the pointer to the correct place
@@ -914,12 +919,12 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             return new CodeFragment("", Integer.toString(character), Type.CHAR);
         } else if (ctx.function_expr() != null) {
             return visit(ctx.function_expr());
+        } else if (ctx.TEXT() != null) {
+            // TODO
+            return new CodeFragment();
         } else {
             // Arrays
-            // this is left unused, since the compiler deals with arrays differently based on
-            // whether the destination is a static or a dynamic array
-            // this error will be dealt with elsewhere
-            return new CodeFragment();
+            return visit(ctx.array_expr());
         }
     }
 
@@ -1144,7 +1149,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         // this is left unused, since the compiler deals with arrays differently based on
         // whether the destination is a static or a dynamic array
         // this error will be dealt with elsewhere
+        errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                + ": Nie je dovolené vracať novovytvorené zoznamy, je nutné ich najprv uložiť do premennej");
         return new CodeFragment();
     }
-
 }

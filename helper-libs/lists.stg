@@ -2,6 +2,7 @@ group LLVM;
 
 // Declare a list
 ListCreation(memory_register, label_id, has_value, type, size, capacity, store, code_after, array_register, return_register) ::= <<
+; List creation
 %list_info_size_ptr_<label_id> = getelementptr %ListType, ptr null, i32 1
 %list_info_size_<label_id> = ptrtoint ptr %list_info_size_ptr_<label_id> to i32
 
@@ -29,6 +30,7 @@ store ptr null, ptr %list_ptr_array_<label_id>
 store ptr <return_register>, ptr <memory_register>
 <endif>
 <code_after>
+; List creation done
 >>
 
 // when there's no previous list, just assign new list and increment its count
@@ -45,6 +47,7 @@ store i32 %new_list_count_inc_<label_id>, ptr %new_list_count_ptr_<label_id>
 
 // save previous list, assign new list and increment its count, decrement the previous count
 ListReassign(memory_register, new_register, label_id, layers, calculate_new) ::= <<
+; List reassignment
 <calculate_new>
 %deassigned_<label_id> = load ptr, ptr <memory_register>
 store ptr <new_register>, ptr <memory_register>

@@ -1,48 +1,7 @@
-Majme celé číslo jeden, ktoré bude 1.
-Majme celé číslo dva, ktoré bude 3 mínus 1.
-Majme celé číslo tri, ktoré bude záporné (-2 krát 3 deleno 2).
-Majme celé číslo štyri, ktoré bude jeden plus tri.
-Vypíš štyri a odriadkuj.
 
-Majme pravdivosť možno, ktoré bude lož a pravda či lož.
-Ak opak možno tak vypíš 1, inak vypíš 0.
-Ak tri je menšie ako štyri tak {
-    Vypíš 1 a odriadkuj.
+Funkcia listy vracajúca zoznam celých čísel berie celé číslo n a robí: {
+    Majme zoznam celých čísel ačko, ktorý bude [n, n plus 1].
+    Vráť ačko.
 }
 
-Vypíš 'a' a odriadkuj.
-
-Majme celé číslo päť.
-
-Funkcia sčítaj vracajúca celé číslo berie celé číslo ačko a celé číslo bčko a robí: {
-    Majme celé číslo d, ktoré bude ačko plus bčko.
-    Vráť d.
-}
-
-Päť bude sčítaj(dva, tri).
-
-Vypíš päť a odriadkuj.
-
-Majme tabuľku celých čísel o veľkosti 2 krát 3 výplaty ktoré budú [[0, 1, 2], [3, 15 modulo (štyri plus päť), 5]].
-Prvok zoznamu výplaty na pozícii (1, 2) bude 42.
-
-Funkcia poľovačka vracajúca tabuľku celých čísel o veľkosti 3 berie tabuľku celých čísel o veľkosti 2 krát 3 tabuľôčička a robí: {
-    Vypíš prvok zoznamu tabuľôčička na pozícii (1, 2) a odriadkuj.
-    Prvok zoznamu tabuľôčička na pozícii (0, 1) bude 67.
-    Vráť prvok zoznamu tabuľôčička na pozícii (0).
-}
-
-Majme tabuľku celých čísel o veľkosti 3 výplaty2, ktorá bude Poľovačka (výplaty).
-Vypíš prvok zoznamu výplaty2 na pozícii (1) a odriadkuj.
-Prvok zoznamu výplaty na pozícii (1) bude [99,98,97].
-
-Majme zoznam celých čísel výšky, ktorý bude [10, 11, 12, 13].
-Majme zoznam celých čísel šírky, ktorý bude výšky.
-
-Prvok zoznamu šírky na pozícii (3) bude päť krát päť.
-Vypíš prvok zoznamu šírky na pozícii (3) a odriadkuj.
-
-Majme zoznam zoznamov celých čísel dvojky, ktorý bude [[20, 21], [22, 23, 24]].
-Vypíš prvok zoznamu dvojky na pozícii (1,1) a odriadkuj.
-Prvok zoznamu dvojky na pozícii (1) bude šírky.
-Vypíš prvok zoznamu dvojky na pozícii (1,1) a odriadkuj.
+Majme zoznam celých čísel bčko, ktorý bude listy(30).
