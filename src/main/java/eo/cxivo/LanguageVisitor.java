@@ -15,6 +15,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     private final List<CodeFragment> declarations = new ArrayList<>();
     private final HashMap<String, FunctionInfo> functions = new HashMap<>();
     private FunctionInfo currentFunction = null;
+    private final List<VariableInfo> currentFunctionCallListArguments = new ArrayList<>();
 
     private int labelIndex = 0;
 
@@ -593,12 +594,32 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         }
 
         FunctionInfo functionInfo = functions.get(ctx.name.getText().toLowerCase());
+
+        if (functionInfo.arguments.size() != ctx.expr().size()) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Nesprávny počet argumentov vo funkcii \"" + ctx.name.getText() + "\": Požadovaných"
+                    + functionInfo.arguments.size() + ", nájdených " + ctx.expr().size());
+            return new CodeFragment();
+        }
+
         List<String> arguments = new ArrayList<>();
 
         // go through the arguments and visit them all
         for (int i = 0; ctx.expr(i) != null; i++) {
             CodeFragment code = visit(ctx.expr(i));
             functionTemplate.add("calculate_arguments", code + "\r\n");
+
+            if (!code.type.equals(functionInfo.arguments.get(i).type)) {
+                errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                        + ": Nesprávny typ argumentu číslo " + i + ": Požadovaný typ"
+                        + functionInfo.arguments.get(i).type.getNameInLLVM() + ", nájdený " + code.type.getNameInLLVM());
+                return new CodeFragment();
+            }
+
+            // what to garbage collect right after function call (and assignment)
+            if (code.type.listDimensions > 0) {
+                currentFunctionCallListArguments.add(new VariableInfo(code.resultRegisterName, code.type));
+            }
 
             arguments.add(functionInfo.arguments.get(i).type.getNameInLLVM() + " " + code.resultRegisterName);
         }
@@ -622,13 +643,29 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     @Override
     public CodeFragment visitAssignment(C_s_makcenomParser.AssignmentContext ctx) {
         CodeFragment left = visit(ctx.id());
-        return new CodeFragment(left.code + "\r\n" + assignment(
+        CodeFragment assignment = new CodeFragment(left.code + "\r\n" + assignment(
                 new VariableInfo(left.resultRegisterName, left.type),
                 ctx.expr(),
                 ctx.start.getLine(),
                 null,
                 ctx.LOGIC_ASSIGNMENT() != null,
                 true));
+
+        // after every function call, garbage collect all arguments
+        StringBuilder garbageCollectingCode = new StringBuilder();
+        if (!currentFunctionCallListArguments.isEmpty()) {
+            for (VariableInfo register: currentFunctionCallListArguments) {
+                ST garbageTemplate = templates.getInstanceOf("GarbageCollect");
+                garbageTemplate.add("memory_register", register.nameInCode);
+                garbageTemplate.add("layers", register.type.listDimensions - 1);
+
+                garbageCollectingCode.append(garbageTemplate.render()).append("\r\n");
+            }
+
+            currentFunctionCallListArguments.clear();
+        }
+
+        return new CodeFragment(assignment + garbageCollectingCode.toString());
     }
 
     @Override
@@ -732,8 +769,24 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         }
 
         // this forgets all variables declared in the block
-        variables.pop();
-        return new CodeFragment("\t" + template.render().replaceAll("\n", "\n\t"));
+        Collection<VariableInfo> exitingScope = variables.pop().values();
+
+        // after scope ends, garbage collect all variables
+        StringBuilder garbageCollectingCode = new StringBuilder();
+
+        for (VariableInfo register: exitingScope) {
+            if (register.type.listDimensions > 0) {
+                ST garbageTemplate = templates.getInstanceOf("GarbageCollect");
+                garbageTemplate.add("memory_register", register.nameInCode);
+                garbageTemplate.add("layers", register.type.listDimensions - 1);
+
+                garbageCollectingCode.append(garbageTemplate.render()).append("\r\n");
+            }
+        }
+
+        return new CodeFragment("\t"
+                + (template.render() + "\r\n" + garbageCollectingCode.toString())
+                .replaceAll("\n", "\n\t"));
     }
 
     @Override
