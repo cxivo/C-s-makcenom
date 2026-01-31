@@ -43,10 +43,10 @@ block
     ;
 
 id
-    :   (index=VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'prvok ' ('zoznamu' | 'tabuľky') array=VARIABLE                      # ArrayElement
-    |   'prvok ' ('zoznamu' | 'tabuľky') array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN          # ArrayElement
-    |   (index=VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'znak textu' array=VARIABLE                         # ArrayElement
-    |   (index=VARIABLE ('-te ')? | FIRST | LAST) 'písmeno textu' array=VARIABLE                               # ArrayElement
+    :   (index=VARIABLE ('-tý ' | '-ty ')? ) 'prvok' ('zoznamu' | 'tabuľky') array=VARIABLE                      # ArrayElement
+    |   'prvok' ('zoznamu' | 'tabuľky') array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN          # ArrayElement
+    |   (index=VARIABLE ('-tý ' | '-ty ')? ) 'znak textu' array=VARIABLE                         # ArrayElement
+    |   (index=VARIABLE ('-te ')?) 'písmeno textu' array=VARIABLE                               # ArrayElement
     |   'znak textu' array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN             # ArrayElement
     |   VARIABLE                                                                                               # Variable
     ;
@@ -177,13 +177,6 @@ PRINT_NEWLINE
     :   'Odriadkuj'
     ;
 
-FIRST
-    :   'prvý' | 'prvé'
-    ;
-
-LAST
-    :   'posledný' | 'posledné'
-    ;
 
 // Math operations
 
@@ -258,8 +251,8 @@ MORE_THAN
     ;
 
 LESS_THAN_OR_EQUAL
-    : 'je menš' ('í' | 'ie'| 'ia') ' alebo rovn' ('é' | 'í' | 'ý') ' ako'
-    | 'sú menš' ('í' | 'ie'| 'ia') ' alebo rovn' ('é' | 'í' | 'ý') ' ako'
+    : 'je menš' ('í' | 'ie'| 'ia') ' alebo rovn' ('é' | 'í' | 'ý' | 'á') ' ako'
+    | 'sú menš' ('í' | 'ie'| 'ia') ' alebo rovn' ('é' | 'í' | 'ý' | 'á') ' ako'
     ;
 
 MORE_THAN_OR_EQUAL
