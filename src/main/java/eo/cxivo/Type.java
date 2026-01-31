@@ -51,7 +51,13 @@ public class Type {
         } else {
             // List
             this.listDimensions = 1 + context.OF_LISTS().size();
-            this.primitive = (new Type(context.of_primitives())).primitive;
+
+            if (context.OF_STRINGS() != null) {
+                this.listDimensions++;
+                this.primitive = Primitive.CHAR;
+            } else {
+                this.primitive = (new Type(context.of_primitives())).primitive;
+            }
         }
     }
 

@@ -10,12 +10,12 @@ PrintNumber(compute_value, value_register, newline) ::= <<
 <compute_value>
 call i32 @print_int(i32 <value_register>)
 <if (newline)>
-    call i32 @print_newline()
+call i32 @print_newline()
 <endif>
 >>
 
 // Printing a boolean
-PrintBoolean(compute_value, value_register, label_id) ::= <<
+PrintBoolean(compute_value, value_register, label_id, newline) ::= <<
 <compute_value>
 br <value_register>, label %printtrue<label_id>, label %printfalse<label_id>
 
@@ -28,19 +28,28 @@ printfalse<label_id>:
     br %endprint<label_id>
 
 endprint<label_id>:
+<if (newline)>
+call i32 @print_newline()
+<endif>
 >>
 
 // Printing a single character
-PrintChar(compute_value, value_register, label_id) ::= <<
+PrintChar(compute_value, value_register, label_id, newline) ::= <<
 <compute_value>
 %char_<label_id> = zext i8 <value_register> to i32
 call i32 @putchar(i32 char_<label_id>)
+<if (newline)>
+call i32 @print_newline()
+<endif>
 >>
 
 // Printing a text TODO
-PrintString(compute_value, value_register) ::= <<
+PrintString(compute_value, value_register, newline) ::= <<
 <compute_value>
 call i32 @printf(ptr <value_register>)
+<if (newline)>
+call i32 @print_newline()
+<endif>
 >>
 
 // Only for printing

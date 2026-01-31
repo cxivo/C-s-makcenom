@@ -1,3 +1,5 @@
 
-Majme text nápis, ktorý bude "Čau\n\\k\ty!".
-Vypíš nápis.
+Majme zoznam textov nápisy, ktorý bude ["Čau\n\\k\ty!", "ahojky"].
+Prvok zoznamu nápisy na pozícii (0,2) bude 'A'.
+Vypíš Prvok zoznamu nápisy na pozícii (1) a odriadkuj.
+Vypíš dĺžku textu prvok zoznamu nápisy na pozícii (1) a odriadkuj.

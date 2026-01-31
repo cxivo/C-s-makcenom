@@ -63,7 +63,7 @@ num_expr
     |    left=num_expr op=(MULTIPLICATION|DIVISION|MODULO) right=num_expr      # BinaryOperation
     |    left=num_expr op=(ADDITION|SUBTRACTION) right=num_expr         # BinaryOperation
     |    NUMBER                                                         # Number
-    |    ('dĺžka zoznamu' | 'dĺžka textu') VARIABLE                     # ArraySize
+    |    ('dĺžka' | 'dĺžku') (' zoznamu' | ' textu') id                     # ArraySize
     |    id                                                             # Identifier
     ;
 

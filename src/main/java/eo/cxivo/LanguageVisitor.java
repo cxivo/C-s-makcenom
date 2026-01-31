@@ -1155,7 +1155,21 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitArraySize(C_s_makcenomParser.ArraySizeContext ctx) {
-        return null;
+        CodeFragment variable = visit(ctx.id());
+        if (variable.type.listDimensions == 0) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Dĺžku je možné brať len zoznamov a uložených textov");
+            return new CodeFragment();
+        }
+
+        ST getSizeTemplate = templates.getInstanceOf("GetListSize");
+        getSizeTemplate.add("calculate_value", variable);
+        getSizeTemplate.add("memory_register", variable.resultRegisterName);
+        String uniqueRegister = generateUniqueRegisterName("string_length");
+        getSizeTemplate.add("return_register", uniqueRegister);
+        getSizeTemplate.add("label_id", generateNewLabel());
+
+        return new CodeFragment(getSizeTemplate.render(), uniqueRegister, Type.INT);
     }
 
     @Override

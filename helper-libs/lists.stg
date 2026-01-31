@@ -83,3 +83,10 @@ PutConstantList(array_register, value_register, size, label_id) ::= <<
 %text_<label_id> = load [<size> x i8], ptr <value_register>
 store [<size> x i8] %text_<label_id>, ptr <array_register>
 >>
+
+GetListSize(memory_register, return_register, label_id, calculate_value) ::= <<
+<calculate_value>
+%loaded_<label_id> = load ptr, ptr <memory_register>
+%list_ptr_size_<label_id> = getelementptr %ListType, ptr %loaded_<label_id>, i32 0, i32 0
+<return_register> = load i32, ptr %list_ptr_size_<label_id>
+>>
