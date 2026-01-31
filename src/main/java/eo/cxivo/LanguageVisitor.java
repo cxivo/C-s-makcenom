@@ -397,6 +397,12 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         // we add the code of each statement
         for (var statement : ctx.statement()) {
             CodeFragment statementCodeFragment = visit(statement);
+
+            if (statementCodeFragment == null) {
+                errorCollector.add("Problém na riadku " + statement.getStart().getLine()
+                        + ": Syntaktická chyba (viď horeuvedený text v angličtine)");
+                return new CodeFragment();
+            }
             statementCodeFragment.code = "\t" + statementCodeFragment.code.replaceAll("\n", "\n\t");
             template.add("code", statementCodeFragment + "\r\n");
         }
