@@ -42,3 +42,9 @@ PrintString(compute_value, value_register) ::= <<
 <compute_value>
 call i32 @printf(ptr <value_register>)
 >>
+
+// Only for printing
+TextConstantDeclaration(size, return_register, text) ::= <<
+<return_register> = global [<size> x i8] c"<text>\00"
+>>
+

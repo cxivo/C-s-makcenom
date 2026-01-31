@@ -72,3 +72,14 @@ GetListElement(memory_register, type, label_id, index, calculate_index, return_r
 <calculate_index>
 <return_register> = getelementptr <type>, ptr %array_<label_id>, i32 <index>
 >>
+
+GetArrayFromList(label_id, memory_register, return_register, compute_value) ::= <<
+<compute_value>
+%array_ptr_<label_id> = getelementptr %ListType, ptr <memory_register>, i32 0, i32 3
+<return_register> = load ptr, ptr %array_ptr_<label_id>
+>>
+
+PutConstantList(array_register, value_register, size, label_id) ::= <<
+%text_<label_id> = load [<size> x i8], ptr <value_register>
+store [<size> x i8] %text_<label_id>, ptr <array_register>
+>>

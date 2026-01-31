@@ -187,6 +187,31 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         return new CodeFragment(getFromVariableTemplate.render(), uniqueName, variable.type);
     }
 
+    // returns the pointer to the string
+    private VariableInfo createTextConstant(String text) {
+        text = text.replaceAll("\\\\\\\\", "\\\\5C")
+                .replaceAll("\\\\t", "\\\\09")
+                .replaceAll("\\\\n", "\\\\0D\\\\0A");
+
+
+        // every "\XX" code is just 1 byte, sooo we treat it as such
+        int backslashCount = text.length() - text.replace("\\", "").length();
+        int length = text.getBytes().length - 2 * backslashCount;
+
+        // create a global constant
+        ST constantTextTemplate = templates.getInstanceOf("TextConstantDeclaration");
+        constantTextTemplate.add("size", length + 1);
+        constantTextTemplate.add("text", text);
+        String returnRegister = "@text_" + generateNewLabel();
+        constantTextTemplate.add("return_register", returnRegister);
+        declarations.add(new CodeFragment(constantTextTemplate.render()));
+
+        Type type = new Type(Type.Primitive.CHAR);
+        type.tableLengths.add(length);
+
+        return new VariableInfo(returnRegister, type);
+    }
+
 
     private int nearestLargerPowerOf2(int x) {
         x--;
@@ -300,6 +325,44 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
                     listTemplate.add("code_after", "\r\n" + locateTemplate.render() + "\r\n" + element);
                 }
+
+                listCalculation = new CodeFragment(listTemplate.render(), listPointer, variableInfo.type);
+            } else if (context.TEXT() != null) {
+                // TEXT
+                //byte[] characters = context.TEXT().getText().substring(1, context.TEXT().getText().length() - 1).getBytes();
+                String text = context.TEXT().getText().substring(1, context.TEXT().getText().length() - 1);
+
+                VariableInfo globalText = createTextConstant(text);
+
+                int arraySize = globalText.type.tableLengths.getFirst() + 1;
+
+                // create a new list
+                ST listTemplate = templates.getInstanceOf("ListCreation");
+                listTemplate.add("label_id", generateNewLabel());
+                String arrayPointer = generateUniqueRegisterName("array");
+                listTemplate.add("array_register", arrayPointer);
+                String listPointer = generateUniqueRegisterName("list");
+                listTemplate.add("return_register", listPointer);
+                listTemplate.add("has_value", arraySize > 0 ? 1 : 0);
+                listTemplate.add("size", arraySize);
+                listTemplate.add("capacity", nearestLargerPowerOf2(arraySize));
+                listTemplate.add("type", "i8");
+
+                // add characters
+                ST arrayTemplate = templates.getInstanceOf("PutConstantList");
+                arrayTemplate.add("array_register", arrayPointer);
+                arrayTemplate.add("label_id", generateNewLabel());
+                arrayTemplate.add("size", arraySize);
+
+//                List<String> elements = new ArrayList<>();
+//                for (byte b: characters) {
+//                    elements.add("i8 " + b);
+//                }
+//
+//                // don't forget null at the end
+                arrayTemplate.add("value_register", globalText.nameInCode);
+
+                listTemplate.add("code_after", "\r\n" + arrayTemplate.render() + "\r\n");
 
                 listCalculation = new CodeFragment(listTemplate.render(), listPointer, variableInfo.type);
             } else {
@@ -495,6 +558,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         return null;
     }
 
+
+
     @Override
     public CodeFragment visitOutput(C_s_makcenomParser.OutputContext ctx) {
         ST outputTemplate = null;
@@ -502,15 +567,40 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         CodeFragment codeFragment = visit(ctx.expr());
 
         // what kind of print to use
-        if (ctx.expr().num_expr() != null) {
+        if (codeFragment.type.listDimensions == 1 && codeFragment.type.primitive == Type.Primitive.CHAR) {
+            // String from variable
+            // get the array itself
+            ST getArrayTemplate = templates.getInstanceOf("GetArrayFromList");
+            getArrayTemplate.add("compute_value", codeFragment);
+            getArrayTemplate.add("label_id", generateNewLabel());
+            String arrayPointer = generateUniqueRegisterName("");
+            getArrayTemplate.add("return_register", arrayPointer);
+            getArrayTemplate.add("memory_register", codeFragment.resultRegisterName);
+
+            outputTemplate = templates.getInstanceOf("PrintString");
+            outputTemplate.add("compute_value", getArrayTemplate.render());
+            outputTemplate.add("value_register", arrayPointer);
+        } else if (ctx.expr().num_expr() != null) {
             outputTemplate = templates.getInstanceOf("PrintNumber");
             outputTemplate.add("compute_value", codeFragment);
             outputTemplate.add("value_register", codeFragment.resultRegisterName);
         } else if (ctx.expr().CHARACTER() != null) {
-            outputTemplate = templates.getInstanceOf("PrintNumber");
+            outputTemplate = templates.getInstanceOf("PrintChar");
             outputTemplate.add("compute_value", codeFragment);
+            outputTemplate.add("label_id", generateNewLabel());
             outputTemplate.add("value_register", codeFragment.resultRegisterName);
-        } // TODO
+        } else if (ctx.expr().logic_expr() != null) {
+            outputTemplate = templates.getInstanceOf("PrintBoolean");
+            outputTemplate.add("compute_value", codeFragment);
+            outputTemplate.add("label_id", generateNewLabel());
+            outputTemplate.add("value_register", codeFragment.resultRegisterName);
+        } else if (ctx.expr().TEXT() != null) {
+            // CONSTANT TEXT
+            String text = ctx.expr().TEXT().getText().substring(1, ctx.expr().TEXT().getText().length() - 1);
+
+            outputTemplate = templates.getInstanceOf("PrintString");
+            outputTemplate.add("value_register", createTextConstant(text).nameInCode);
+        }
 
         assert outputTemplate != null;
 
@@ -962,6 +1052,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             return visit(ctx.function_expr());
         } else if (ctx.TEXT() != null) {
             // TODO
+
             return new CodeFragment();
         } else {
             // Arrays

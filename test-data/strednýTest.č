@@ -46,3 +46,15 @@ Majme zoznam zoznamov celých čísel dvojky, ktorý bude [[20, 21], [22, 23, 24
 Vypíš prvok zoznamu dvojky na pozícii (1,1) a odriadkuj.
 Prvok zoznamu dvojky na pozícii (1) bude šírky.
 Vypíš prvok zoznamu dvojky na pozícii (1,1) a odriadkuj.
+
+
+Funkcia listy vracajúca zoznam celých čísel berie celé číslo n a robí: {
+    Majme zoznam celých čísel ačko, ktorý bude [n, n plus 1].
+    Majme zoznam celých čísel nič, ktorý bude [n, n plus 1].
+    Vráť ačko.
+}
+
+Majme zoznam celých čísel bčko, ktorý bude listy(30).
+Vypíš prvok zoznamu bčko na pozícii (1).
+
+Majme text nápis, ktorý bude "Ahojky!".
