@@ -18,10 +18,10 @@ statement
 
 statementBody
     :   LET var_type=type VARIABLE (WHICH_WILL_BE expr)?                                                    # Declaration
-    |   IF condition=logic_expr COMMA? THEN (statementBody | block) (ELSE (statementBody | block))?         # Conditional
-    |   'Opakuj pre' varName=VARIABLE 'od' lower=num_expr 'po' upper=num_expr ':' (statementBody | block)   # ForLoop
-    |   'Opakuj od' lower=num_expr 'po' upper=num_expr ':' (statementBody | block)                          # ForLoop
-    |   'Kým' condition=logic_expr THEN (statementBody | block)                                             # WhileLoop
+    |   IF condition=logic_expr COMMA? THEN ':'? (statementBody | block) (ELSE ':'? (statementBody | block))?         # Conditional
+    |   'Opakuj pre' varName=VARIABLE 'od' lower=num_expr 'po' upper=num_expr ':'? (statementBody | block)   # ForLoop
+    |   'Opakuj od' lower=num_expr 'po' upper=num_expr ':'? (statementBody | block)                          # ForLoop
+    |   'Kým' condition=logic_expr THEN? ':'? (statementBody | block)                                             # WhileLoop
     |   LOAD input_type INTO_VAR VARIABLE                                   # Input
     |   PRINT (expr) AND_PRINT_NEWLINE?                                     # Output
     |   PRINT_NEWLINE                                                       # PrintNewLine

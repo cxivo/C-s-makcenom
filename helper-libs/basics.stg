@@ -188,6 +188,7 @@ GetFromVariable(return_register, memory_register, type) ::= <<
 
 // For loop
 For(iter_memory_register, lower, upper, code, label_id, loop_increment, end_cycle, calculate_values) ::= <<
+; for loop
 <calculate_values>
 <iter_memory_register> = alloca i32
 store i32 <lower>, i32* <iter_memory_register>
@@ -208,6 +209,23 @@ store i32 %inc_<label_id>, i32* <iter_memory_register>
 br label %cycle<label_id>
 
 <end_cycle>:
+; end for loop
+>>
+
+While(return_register, code, label_id, loop, end_cycle, calculate_values) ::= <<
+; while loop
+br label %<loop>
+<loop>:
+<calculate_values>
+
+br i1 <return_register>, label %iter<label_id>, label %<end_cycle>
+
+iter<label_id>:
+<code>
+br label %<loop>
+
+<end_cycle>:
+; end while loop
 >>
 
 // If statement

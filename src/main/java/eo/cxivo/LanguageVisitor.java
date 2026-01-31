@@ -599,7 +599,31 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitWhileLoop(C_s_makcenomParser.WhileLoopContext ctx) {
-        return null;
+        ST loopTemplate = templates.getInstanceOf("While");
+
+        CodeFragment calculation = visit(ctx.condition);
+
+        loopTemplate.add("calculate_values", calculation);
+        loopTemplate.add("return_register", calculation.resultRegisterName);
+        loopTemplate.add("label_id", generateNewLabel());
+
+        // generate labels
+        String breakLabel = "end_cycle_" + generateNewLabel();
+        String continueLabel = "loop_" + generateNewLabel();
+        breakLabels.push(breakLabel);
+        continueLabels.push(continueLabel);
+        loopTemplate.add("end_cycle", breakLabel);
+        loopTemplate.add("loop", continueLabel);
+
+
+        CodeFragment code = ctx.statementBody() != null ? visit(ctx.statementBody()) : visit(ctx.block());
+        loopTemplate.add("code", code);
+
+        // after visiting everything, pop labels
+        breakLabels.pop();
+        continueLabels.pop();
+
+        return new CodeFragment(loopTemplate.render());
     }
 
     @Override

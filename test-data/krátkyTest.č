@@ -3,3 +3,9 @@ Opakuj pre i od 0 po 10: {
     Vypíš i.
     Ak i sa rovná 8 tak dlabať.
 }
+
+Majme celé číslo i, ktoré bude 10.
+Kým i je väčšie ako 0: {
+    Vypíš i a odriadkuj.
+    I bude i mínus 1.
+}
