@@ -3,7 +3,6 @@ package eo.cxivo;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 import java.io.*;
-import java.util.Collection;
 import java.util.Collections;
 
 public class Main {

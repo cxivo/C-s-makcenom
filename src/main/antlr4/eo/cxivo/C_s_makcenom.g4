@@ -35,7 +35,7 @@ statementBody
     ;
 
 functionDefinition
-    : 'Funkcia' name=VARIABLE ('vracajúca' returning=type | 'nevracajúca nič') 'berie' (in_type=type in_name=VARIABLE (COMMA | AND))* in_type=type in_name=VARIABLE 'a robí:' NEWLINE? INDENT statement* DEDENT
+    : 'Funkcia' name=VARIABLE ('vracajúca' returning=type | 'nevracajúca nič') ' berie ' (in_type=type in_name=VARIABLE (COMMA | AND))* in_type=type in_name=VARIABLE 'a robí:' NEWLINE? INDENT statement* DEDENT
     ;
 
 block
@@ -43,8 +43,8 @@ block
     ;
 
 id
-    :   (index=VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'prvok zoznamu' array=VARIABLE                      # ArrayElement
-    |   'prvok zoznamu' array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN          # ArrayElement
+    :   (index=VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'prvok ' ('zoznamu' | 'tabuľky') array=VARIABLE                      # ArrayElement
+    |   'prvok ' ('zoznamu' | 'tabuľky') array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN          # ArrayElement
     |   (index=VARIABLE ('-tý ' | '-ty ')? | FIRST | LAST) 'znak textu' array=VARIABLE                         # ArrayElement
     |   (index=VARIABLE ('-te ')? | FIRST | LAST) 'písmeno textu' array=VARIABLE                               # ArrayElement
     |   'znak textu' array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN             # ArrayElement
