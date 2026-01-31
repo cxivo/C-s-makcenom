@@ -8,6 +8,12 @@ int read_int() {
     return r;
 }
 
+int read_word() {
+    int r;
+    scanf("%d", &r);
+    return r;
+}
+
 int *read_int_array(int n) {
     int *r = malloc(n * sizeof(int));
     int i;

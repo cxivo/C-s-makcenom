@@ -1,11 +1,3 @@
-Opakuj pre i od 0 po 10: {
-    Ak i sa rovná 5 tak preskoč.
-    Vypíš i.
-    Ak i sa rovná 8 tak dlabať.
-}
-
-Majme celé číslo i, ktoré bude 10.
-Kým i je väčšie ako 0: {
-    Vypíš i a odriadkuj.
-    I bude i mínus 1.
-}
+Majme text meno, ktoré bude slovo zo vstupu.
+Vypíš dĺžku textu meno.
+Vypíš meno a odriadkuj.

@@ -1,0 +1,9 @@
+Vypíš "Povedz koľko čísel chceš: ".
+Majme celé číslo n, ktoré bude celé číslo zo vstupu.
+
+Opakuj pre i od 0 po n: {
+    Ak i sa rovná 5 tak preskoč.
+    Vypíš i a odriadkuj.
+}
+
+Vypíš "Hotovo!" a odriadkuj.

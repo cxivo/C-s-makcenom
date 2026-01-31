@@ -8,12 +8,14 @@ base(code, declarations) ::= <<
 ; system
 declare i32 @printf(ptr, ...)
 declare i32 @putchar(i32)
+declare i32 @getchar()
 declare ptr @malloc(i32)
 declare ptr @calloc(i32, i32)
 declare ptr @realloc(ptr, i32)
 declare void @free(ptr)
 
 ; library
+declare i32 @read_int()
 declare i32 @print_int(i32)
 declare i32 @print_true()
 declare i32 @print_false()
@@ -87,7 +89,11 @@ define void @increase_size(ptr %list, i32 %element_size) {
 
     br i1 %needs_resize, label %resize, label %inc_size
 resize:
-    %new_capacity = shl i32 %list_capacity, 1       ; double capacity
+    %doubled_capacity = shl i32 %list_capacity, 1
+    %is_zero_capacity = icmp eq i32 %doubled_capacity, 0
+    %if_zero_add_one = zext i1 %is_zero_capacity to i32
+    %new_capacity = add i32 %doubled_capacity, %if_zero_add_one
+
     %list_array = load ptr, ptr %list_ptr_array
     %bytes = mul i32 %new_capacity, %element_size
     %new_array = call ptr @realloc(ptr %list_array, i32 %bytes)
@@ -132,6 +138,23 @@ resize:
 dec_size:
     %list_size_dec = sub i32 %list_size, 1
     store i32 %list_size_dec, ptr %list_ptr_size
+    ret void
+}
+
+
+define void @add_char(ptr %list, i8 %char) {
+    %list_ptr_size = getelementptr %ListType, ptr %list, i32 0, i32 0
+    %list_size = load i32, ptr %list_ptr_size
+
+    %i8_size_ptr = getelementptr i8, ptr null, i32 1
+    %i8_size = ptrtoint ptr %i8_size_ptr to i32
+    call void @increase_size(ptr %list, i32 %i8_size)
+
+    %list_ptr_array = getelementptr %ListType, ptr %list, i32 0, i32 3
+    %list_array = load ptr, ptr %list_ptr_array
+    %place_here = getelementptr i8, ptr %list_array, i32 %list_size
+
+    store i8 %char, ptr %place_here
     ret void
 }
 

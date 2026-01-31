@@ -332,7 +332,12 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 listCalculation = new CodeFragment(listTemplate.render(), listPointer, variableInfo.type);
             } else if (context.TEXT() != null) {
                 // TEXT
-                //byte[] characters = context.TEXT().getText().substring(1, context.TEXT().getText().length() - 1).getBytes();
+                if (variableInfo.type.primitive != Type.Primitive.CHAR || variableInfo.type.listDimensions != 1) {
+                    errorCollector.add("Problém na riadku " + context.getStart().getLine()
+                            + ": Nekompatibilné typy: text nemožno priradiť do " + variableInfo.type.getNameInLLVM());
+                    return new CodeFragment();
+                }
+
                 String text = context.TEXT().getText().substring(1, context.TEXT().getText().length() - 1);
 
                 VariableInfo globalText = createTextConstant(text);
@@ -362,6 +367,41 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 listTemplate.add("code_after", "\r\n" + arrayTemplate.render() + "\r\n");
 
                 listCalculation = new CodeFragment(listTemplate.render(), listPointer, variableInfo.type);
+            } else if (context.FROM_INPUT() != null) {
+                // INPUT TEXT
+                if (variableInfo.type.primitive != Type.Primitive.CHAR || variableInfo.type.listDimensions != 1) {
+                    errorCollector.add("Problém na riadku " + context.getStart().getLine()
+                            + ": Nekompatibilné typy: text nemožno priradiť do " + variableInfo.type.getNameInLLVM());
+                    return new CodeFragment();
+                }
+
+                if (context.input_type().WORD() != null || context.input_type().LINE() != null) {
+                    // create a new list
+                    ST listTemplate = templates.getInstanceOf("ListCreation");
+                    listTemplate.add("label_id", generateNewLabel());
+                    String arrayPointer = generateUniqueRegisterName("array");
+                    listTemplate.add("array_register", arrayPointer);
+                    String listPointer = generateUniqueRegisterName("list");
+                    listTemplate.add("return_register", listPointer);
+//                    listTemplate.add("has_value", 0);
+//                    listTemplate.add("size", 0);
+//                    listTemplate.add("capacity", 4);
+//                    listTemplate.add("type", "i8");
+
+                    // add characters
+                    ST inputTemplate = templates.getInstanceOf("ReadCharacters");
+                    inputTemplate.add("list_register", listPointer);
+                    inputTemplate.add("label_id", generateNewLabel());
+                    inputTemplate.add("word", context.input_type().WORD() != null ? 1 : 0);
+
+                    listTemplate.add("code_after", "\r\n" + inputTemplate.render() + "\r\n");
+
+                    listCalculation = new CodeFragment(listTemplate.render(), listPointer, variableInfo.type);
+                } else {
+                    errorCollector.add("Problém na riadku " + context.getStart().getLine()
+                            + ": Nekompatibilné typy: sem možno čítať iba text");
+                    return new CodeFragment();
+                }
             } else {
                 // other list variables
                 CodeFragment value = visit(context);
@@ -626,16 +666,11 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         return new CodeFragment(loopTemplate.render());
     }
 
-    @Override
-    public CodeFragment visitInput(C_s_makcenomParser.InputContext ctx) {
-        return null;
-    }
-
 
 
     @Override
     public CodeFragment visitOutput(C_s_makcenomParser.OutputContext ctx) {
-        ST outputTemplate = null;
+        ST outputTemplate;
 
         CodeFragment codeFragment = visit(ctx.expr());
 
@@ -673,9 +708,15 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
             outputTemplate = templates.getInstanceOf("PrintString");
             outputTemplate.add("value_register", createTextConstant(text).nameInCode);
+        } else if (ctx.expr().FROM_INPUT() != null) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": ...naozaj chcete, aby som okamžite vypísal váš vstup? Zožeňte si na to papagája, ja to robiť nejdem");
+            return new CodeFragment();
+        } else {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Nastala neznáma chyba... Toto autor jazyka nedomyslel :(");
+            return new CodeFragment();
         }
-
-        assert outputTemplate != null;
 
         // also add a newline
         if (ctx.AND_PRINT_NEWLINE() != null) {
@@ -1204,9 +1245,25 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         } else if (ctx.function_expr() != null) {
             return visit(ctx.function_expr());
         } else if (ctx.TEXT() != null) {
-            // TODO
-
+            // this is correct, all the heavy lifting is done by Output
             return new CodeFragment();
+        } else if (ctx.FROM_INPUT() != null) {
+            // input
+            String uniqueRegister = generateUniqueRegisterName("input");
+
+            if (ctx.input_type().INT() != null) {
+                ST template = templates.getInstanceOf("GetInt");
+                template.add("return_register", uniqueRegister);
+                return new CodeFragment(template.render(), uniqueRegister, Type.INT);
+            } else if (ctx.input_type().CHAR() != null) {
+                ST template = templates.getInstanceOf("GetChar");
+                template.add("return_register", uniqueRegister);
+                template.add("label_id", generateNewLabel());
+                return new CodeFragment(template.render(), uniqueRegister, Type.CHAR);
+            } else {
+                // this is correct, all the heavy lifting is done by Output
+                return new CodeFragment();
+            }
         } else {
             // Arrays
             return visit(ctx.array_expr());

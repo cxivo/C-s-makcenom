@@ -46,7 +46,7 @@ call i32 @print_newline()
 // Printing a text TODO
 PrintString(compute_value, value_register, newline) ::= <<
 <compute_value>
-call i32 @printf(ptr <value_register>)
+call i32 @print_string(ptr <value_register>)
 <if (newline)>
 call i32 @print_newline()
 <endif>
@@ -57,3 +57,38 @@ TextConstantDeclaration(size, return_register, text) ::= <<
 <return_register> = global [<size> x i8] c"<text>\00"
 >>
 
+GetChar(return_register, label_id) ::= <<
+%char_<label_id> = call i32 getchar()
+<return_register> = trunc %char_<label_id> to i8
+>>
+
+GetInt(return_register) ::= <<
+<return_register> = call i32 @read_int()
+>>
+
+ReadCharacters(list_register, label_id, word) ::= <<
+br label %get_char_<label_id>
+
+get_char_<label_id>:
+%char_int_<label_id> = call i32 @getchar()
+%char_<label_id> = trunc i32 %char_int_<label_id> to i8
+
+; detect space, tab, and newline
+<if(word)>
+%is_newline_<label_id> = icmp eq i8 %char_<label_id>, 10  ; newline
+%is_tab_<label_id> = icmp eq i8 %char_<label_id>, 9       ; tab
+%is_space_<label_id> = icmp eq i8 %char_<label_id>, 32    ; space
+%is_white_<label_id> = or i1 %is_space_<label_id>, %is_tab_<label_id>
+%is_ws_<label_id> = or i1 %is_white_<label_id>, %is_newline_<label_id>
+<else>
+%is_ws_<label_id> = icmp eq i8 %char_<label_id>, 10    ; newline
+<endif>
+br i1 %is_ws_<label_id>, label %store_null_<label_id>, label %store_char_<label_id>
+
+store_char_<label_id>:
+call void @add_char(ptr <list_register>, i8 %char_<label_id>)
+br label %get_char_<label_id>
+
+store_null_<label_id>:
+call void @add_char(ptr <list_register>, i8 0)
+>>

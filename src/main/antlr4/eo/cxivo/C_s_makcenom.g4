@@ -22,7 +22,6 @@ statementBody
     |   'Opakuj pre' varName=VARIABLE 'od' lower=num_expr 'po' upper=num_expr ':'? (statementBody | block)   # ForLoop
     |   'Opakuj od' lower=num_expr 'po' upper=num_expr ':'? (statementBody | block)                          # ForLoop
     |   'Kým' condition=logic_expr THEN? ':'? (statementBody | block)                                             # WhileLoop
-    |   LOAD input_type INTO_VAR VARIABLE                                   # Input
     |   PRINT (expr) AND_PRINT_NEWLINE?                                     # Output
     |   PRINT_NEWLINE                                                       # PrintNewLine
     |   BREAK                           # Break
@@ -52,7 +51,7 @@ id
     |   VARIABLE                                                                                               # Variable
     ;
 
-expr: num_expr | logic_expr | array_expr | TEXT | CHARACTER | function_expr;
+expr: num_expr | logic_expr | array_expr | TEXT | CHARACTER | function_expr | input_type FROM_INPUT;
 
 function_expr
     :   name=VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN
@@ -89,7 +88,7 @@ type
     ;
 
 input_type
-    : INT | BOOL | LINE | WORD | CHAR
+    : INT | LINE | WORD | CHAR
     ;
 
 of_primitives
@@ -311,6 +310,8 @@ LINE
 WORD
     : 'slovo'
     ;
+
+FROM_INPUT: 'zo vstupu';
 
 LIST: 'zoznam';
 OF_LISTS: 'zoznamov';
