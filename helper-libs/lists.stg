@@ -86,7 +86,35 @@ store [<size> x i8] %text_<label_id>, ptr <array_register>
 
 GetListSize(memory_register, return_register, label_id, calculate_value) ::= <<
 <calculate_value>
-%loaded_<label_id> = load ptr, ptr <memory_register>
-%list_ptr_size_<label_id> = getelementptr %ListType, ptr %loaded_<label_id>, i32 0, i32 0
+%list_<label_id> = load ptr, ptr <memory_register>
+%list_ptr_size_<label_id> = getelementptr %ListType, ptr %list_<label_id>, i32 0, i32 0
 <return_register> = load i32, ptr %list_ptr_size_<label_id>
+>>
+
+IncreaseSize(memory_register, label_id, code_after, return_register, calculate_value, type) ::= <<
+<calculate_value>
+; Add element
+%list_<label_id> = load ptr, ptr <memory_register>
+%list_ptr_size_<label_id> = getelementptr %ListType, ptr %list_<label_id>, i32 0, i32 0
+%list_size_<label_id> = load i32, ptr %list_ptr_size_<label_id>
+
+%size_ptr_<label_id> = getelementptr <type>, ptr null, i32 1
+%size_<label_id> = ptrtoint ptr %size_ptr_<label_id> to i32
+call void @increase_size(ptr %list_<label_id>, i32 %size_<label_id>)
+
+%list_ptr_array_<label_id> = getelementptr %ListType, ptr %list_<label_id>, i32 0, i32 3
+%list_array_<label_id> = load ptr, ptr %list_ptr_array_<label_id>
+<return_register> = getelementptr <type>, ptr %list_array_<label_id>, i32 %list_size_<label_id>
+
+<code_after>
+>>
+
+DecreaseSize(memory_register, label_id, calculate_value, type) ::= <<
+<calculate_value>
+; Remove element
+%list_<label_id> = load ptr, ptr <memory_register>
+
+%size_ptr_<label_id> = getelementptr <type>, ptr null, i32 1
+%size_<label_id> = ptrtoint ptr %size_ptr_<label_id> to i32
+call void @decrease_size(ptr %list_<label_id>, i32 %size_<label_id>)
 >>

@@ -191,6 +191,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     private VariableInfo createTextConstant(String text) {
         text = text.replaceAll("\\\\\\\\", "\\\\5C")
                 .replaceAll("\\\\t", "\\\\09")
+                .replaceAll("\\\\0", "\\\\00")
                 .replaceAll("\\\\n", "\\\\0D\\\\0A");
 
 
@@ -354,12 +355,6 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 arrayTemplate.add("label_id", generateNewLabel());
                 arrayTemplate.add("size", arraySize);
 
-//                List<String> elements = new ArrayList<>();
-//                for (byte b: characters) {
-//                    elements.add("i8 " + b);
-//                }
-//
-//                // don't forget null at the end
                 arrayTemplate.add("value_register", globalText.nameInCode);
 
                 listTemplate.add("code_after", "\r\n" + arrayTemplate.render() + "\r\n");
@@ -1013,9 +1008,68 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             return new CodeFragment(elementLocation.toString(), lastPointer, innerType);
         } else {
             errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
-                    + ": Indexovať sa dá do tabuľky a zoznamu, nie do " + info.type.getNameInLLVM());
+                    + ": Indexovať sa dá do tabuľky, zoznamu a textu, nie do " + info.type.getNameInLLVM());
             return new CodeFragment();
         }
+    }
+
+    @Override
+    public CodeFragment visitAddElement(C_s_makcenomParser.AddElementContext ctx) {
+        CodeFragment list = visit(ctx.id());
+
+        if (list.type.listDimensions == 0) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Pridávať prvky je možné len do zoznamu a textu, nie do " + list.type.getNameInLLVM());
+            return new CodeFragment();
+        }
+
+        ST increaseListSizeTemplate = templates.getInstanceOf("IncreaseSize");
+        increaseListSizeTemplate.add("calculate_value", list);
+        increaseListSizeTemplate.add("memory_register", list.resultRegisterName);
+        increaseListSizeTemplate.add("label_id", generateNewLabel());
+        String uniqueRegister = generateUniqueRegisterName("");
+        increaseListSizeTemplate.add("return_register", uniqueRegister);
+
+        Type innerType = Type.copyOf(list.type);
+        innerType.listDimensions--;
+
+        increaseListSizeTemplate.add("type", innerType.getNameInLLVM());
+
+        CodeFragment assign = assignment(
+                new VariableInfo(uniqueRegister, innerType),
+                ctx.expr(),
+                ctx.getStart().getLine(),
+                null,
+                false,
+                false
+                );
+
+        increaseListSizeTemplate.add("code_after", assign);
+
+        return new CodeFragment(increaseListSizeTemplate.render());
+    }
+
+    @Override
+    public CodeFragment visitRemoveElement(C_s_makcenomParser.RemoveElementContext ctx) {
+        CodeFragment list = visit(ctx.id());
+
+        if (list.type.listDimensions == 0) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Odoberať prvky je možné len zo zoznamu a textu, nie z " + list.type.getNameInLLVM());
+            return new CodeFragment();
+        }
+
+        ST decreaseListSizeTemplate = templates.getInstanceOf("DecreaseSize");
+        decreaseListSizeTemplate.add("calculate_value", list);
+        decreaseListSizeTemplate.add("memory_register", list.resultRegisterName);
+        decreaseListSizeTemplate.add("label_id", generateNewLabel());
+
+        Type innerType = Type.copyOf(list.type);
+        innerType.listDimensions--;
+
+        decreaseListSizeTemplate.add("type", innerType.getNameInLLVM());
+
+        return new CodeFragment(decreaseListSizeTemplate.render());
     }
 
     @Override
@@ -1039,8 +1093,18 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             // all chars should be of the format "'c'", so we need the character on position 1
             int character = ctx.CHARACTER().getText().charAt(1);
 
+            String text = ctx.CHARACTER().getText();
+
+            character = switch (text) {
+                case "'\\0'" -> 0;
+                case "'\\n'" -> 0x0A;
+                case "'\\t'" -> 0x09;
+                case "'\\\\'" -> 0x5C;
+                default -> character;
+            };
+
             // check whether the character fits in i8 and whether it isn't something more complicated (like a Chinese character)
-            if (character > 0xFF || ctx.CHARACTER().getText().length() != 3) {
+            if (character > 0xFF) {
                 errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
                         + ": \"" + ctx.CHARACTER().getText() + "\" tu nemožno použiť, treba len písmenko bez diakritiky :/");
                 return new CodeFragment();

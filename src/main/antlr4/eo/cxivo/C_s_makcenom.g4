@@ -30,8 +30,10 @@ statementBody
     |   CONTINUE                        # Continue
     |   DONE                            # ReturnNothing
     |   RETURN expr                     # Return
-    |   function_expr                   # ProcedureCall
-    |   id op=(LOGIC_ASSIGNMENT | ASSIGNMENT) expr      # Assignment
+    |   'Pridaj do zoznamu' array=id 'prvok' expr                     # AddElement
+    |   ('Zmaž' | 'Odstráň') ' zo zoznamu' array=id                   # RemoveElement
+    |   function_expr                                           # ProcedureCall
+    |   id op=(LOGIC_ASSIGNMENT | ASSIGNMENT) expr              # Assignment
     ;
 
 functionDefinition
@@ -325,6 +327,7 @@ CONTINUE: 'Preskoč';
 DONE: 'Hotovo';
 RETURN: 'Vráť';
 
+
 // Other stuff (very proffesional naming)
 
 LEFT_PAREN
@@ -369,8 +372,7 @@ VARIABLE
     ;
 
 CHARACTER
-    //: '\'' ( . | '\\' . ) '\''
-    : '\'' . '\''
+    : '\'' ( . | '\\' . ) '\''
     ;
 
 TEXT

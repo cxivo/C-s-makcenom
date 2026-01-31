@@ -10,6 +10,7 @@ declare i32 @printf(ptr, ...)
 declare i32 @putchar(i32)
 declare ptr @malloc(i32)
 declare ptr @calloc(i32, i32)
+declare ptr @realloc(ptr, i32)
 declare void @free(ptr)
 
 ; library
@@ -73,6 +74,68 @@ at_the_end:
 still_used:
     ret void
 }
+
+define void @increase_size(ptr %list, i32 %element_size) {
+    %list_ptr_size = getelementptr %ListType, ptr %list, i32 0, i32 0
+    %list_ptr_capacity = getelementptr %ListType, ptr %list, i32 0, i32 1
+    %list_ptr_references = getelementptr %ListType, ptr %list, i32 0, i32 2
+    %list_ptr_array = getelementptr %ListType, ptr %list, i32 0, i32 3
+
+    %list_size = load i32, ptr %list_ptr_size
+    %list_capacity = load i32, ptr %list_ptr_capacity
+    %needs_resize = icmp eq i32 %list_size, %list_capacity
+
+    br i1 %needs_resize, label %resize, label %inc_size
+resize:
+    %new_capacity = shl i32 %list_capacity, 1       ; double capacity
+    %list_array = load ptr, ptr %list_ptr_array
+    %bytes = mul i32 %new_capacity, %element_size
+    %new_array = call ptr @realloc(ptr %list_array, i32 %bytes)
+    store ptr %new_array, ptr %list_ptr_array
+    store i32 %new_capacity, ptr %list_ptr_capacity
+    br label %inc_size
+inc_size:
+    %list_size_inc = add i32 %list_size, 1
+    store i32 %list_size_inc, ptr %list_ptr_size
+    ret void
+}
+
+
+define void @decrease_size(ptr %list, i32 %element_size) {
+    %list_ptr_size = getelementptr %ListType, ptr %list, i32 0, i32 0
+    %list_ptr_capacity = getelementptr %ListType, ptr %list, i32 0, i32 1
+    %list_ptr_references = getelementptr %ListType, ptr %list, i32 0, i32 2
+    %list_ptr_array = getelementptr %ListType, ptr %list, i32 0, i32 3
+
+    %list_size = load i32, ptr %list_ptr_size
+    %list_capacity = load i32, ptr %list_ptr_capacity
+    %is_zero = icmp eq i32 %list_size, 0
+    br i1 %is_zero, label %do_nothing, label %check_more
+
+do_nothing:
+    ret void
+
+check_more:
+    ; only reduce capacity when size is 1/4 of capacity
+    %list_quarter_capacity = ashr i32 %list_capacity, 2
+    %needs_resize = icmp sle i32 %list_size, %list_quarter_capacity
+
+    br i1 %needs_resize, label %resize, label %dec_size
+resize:
+    %new_capacity = ashr i32 %list_capacity, 1       ; half capacity
+    %list_array = load ptr, ptr %list_ptr_array
+    %bytes = mul i32 %new_capacity, %element_size
+    %new_array = call ptr @realloc(ptr %list_array, i32 %bytes)
+    store ptr %new_array, ptr %list_ptr_array
+    store i32 %new_capacity, ptr %list_ptr_capacity
+    br label %dec_size
+dec_size:
+    %list_size_dec = sub i32 %list_size, 1
+    store i32 %list_size_dec, ptr %list_ptr_size
+    ret void
+}
+
+; User-defined
 
 <declarations>
 
