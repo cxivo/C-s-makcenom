@@ -199,7 +199,9 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     // generates the code for assignment, to be used by multiple visitors
     // need only either context or calculated value
-    private CodeFragment assignment(VariableInfo variableInfo, C_s_makcenomParser.ExprContext context, int line, CodeFragment calculatedValue, boolean mustBeBool) {
+    // stores result in the provided variableInfo
+    // returns CodeFragment with the whole operation
+    private CodeFragment assignment(VariableInfo variableInfo, C_s_makcenomParser.ExprContext context, int line, CodeFragment calculatedValue, boolean mustBeBool, boolean shouldGarbageCollect) {
         // just for beauty, enforce correct usage of booleans
         if (mustBeBool && variableInfo.type.primitive != Type.Primitive.BOOL) {
             errorCollector.add("Problém na riadku " + line
@@ -259,6 +261,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         } else if (variableInfo.type.listDimensions > 0) {
             // LIST
+            CodeFragment listCalculation;
 
             if (context.array_expr() != null) {
                 // a new list from square brackets
@@ -269,52 +272,62 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 int arraySize = context.array_expr().expr().size();
 
                 // create a new list
-                ST listCreationTemplate = templates.getInstanceOf("ListCreation");
-                listCreationTemplate.add("label_id", generateNewLabel());
-                listCreationTemplate.add("memory_register", variableInfo.nameInCode);
-                listCreationTemplate.add("has_value", arraySize > 0 ? 1 : 0);
-                listCreationTemplate.add("size", arraySize);
-                listCreationTemplate.add("capacity", nearestLargerPowerOf2(arraySize));
-                listCreationTemplate.add("type", innerType.getNameInLLVM());
-                listCreationTemplate.add("store", 1);
+                ST listTemplate = templates.getInstanceOf("ListCreation");
+                listTemplate.add("label_id", generateNewLabel());
+                String arrayPointer = generateUniqueRegisterName("array");
+                listTemplate.add("array_register", arrayPointer);
+                String listPointer = generateUniqueRegisterName("list");
+                listTemplate.add("return_register", listPointer);
+                listTemplate.add("has_value", arraySize > 0 ? 1 : 0);
+                listTemplate.add("size", arraySize);
+                listTemplate.add("capacity", nearestLargerPowerOf2(arraySize));
+                listTemplate.add("type", innerType.getNameInLLVM());
+
 
                 // for each element
                 for (int i = 0; i < arraySize; i++) {
-//                    if (!element.type.equals(variableInfo.type)) {
-//                        errorCollector.add("Problém na riadku " + context.getStart().getLine()
-//                                + ": Nekompatibilné typy (teraz to bude technické): premenná \"" + variableInfo.type.getNameInLLVM()
-//                                + " a hodnota \"" + element.type.getNameInLLVM() + "\"");
-//                        return new CodeFragment();
-//                    }
-
-                    // find the position in the array at which the element will be stored
                     VariableInfo elementInfo = new VariableInfo(generateUniqueRegisterName(""), innerType);
 
                     ST locateTemplate = templates.getInstanceOf("LocateArrayElement");
                     locateTemplate.add("type", innerType.getNameInLLVM());
-                    locateTemplate.add("memory_register", variableInfo.nameInCode);
+                    locateTemplate.add("memory_register", arrayPointer);
                     locateTemplate.add("return_register", elementInfo.nameInCode);
                     locateTemplate.add("index_registers", "i32 " + i);
 
                     // recursion, this will make an assignment to the correct place in our array
-                    CodeFragment element = assignment(elementInfo, context.array_expr().expr(i), line, null, false);
+                    CodeFragment element = assignment(elementInfo, context.array_expr().expr(i), line, null, false, false);
 
-                    listCreationTemplate.add("code_after", locateTemplate.render() + "\r\n" + element);
+                    listTemplate.add("code_after", locateTemplate.render() + "\r\n" + element);
                 }
 
-                return new CodeFragment(listCreationTemplate.render());
+                listCalculation = new CodeFragment(listTemplate.render(), listPointer, variableInfo.type);
             } else {
-                // copy and add a reference
-                ST listReassignTemplate = templates.getInstanceOf("ListReassign");
-                listReassignTemplate.add("label_id", generateNewLabel());
-                listReassignTemplate.add("layers", variableInfo.type.listDimensions - 1);
-                CodeFragment newList = visit(context);
-                listReassignTemplate.add("new_register", newList.resultRegisterName);
-                listReassignTemplate.add("calculate_new", newList);
-                listReassignTemplate.add("memory_register", variableInfo.nameInCode);
+                // other list variables
+                CodeFragment value = visit(context);
+                if (!value.type.equals(variableInfo.type)) {
+                    errorCollector.add("Problém na riadku " + context.getStart().getLine()
+                            + ": Nekompatibilné typy: na pravej strane musí byť " + variableInfo.type.listDimensions + "-rozmerný zoznam.");
+                    return new CodeFragment();
+                }
 
-                return new CodeFragment(listReassignTemplate.render());
+                listCalculation = value;
             }
+
+            // whether the place where we are about to write used to contain a list
+            ST listTemplate;
+            if (shouldGarbageCollect) {
+                listTemplate = templates.getInstanceOf("ListReassign");
+            } else {
+                listTemplate = templates.getInstanceOf("ListAssign");
+            }
+
+            listTemplate.add("label_id", generateNewLabel());
+            listTemplate.add("layers", variableInfo.type.listDimensions - 1);
+            listTemplate.add("new_register", listCalculation.resultRegisterName);
+            listTemplate.add("calculate_new", listCalculation);
+            listTemplate.add("memory_register", variableInfo.nameInCode);
+
+            return new CodeFragment(listTemplate.render());
         } else {
             // regular integers and bools and whole tables
             CodeFragment value = visit(context);
@@ -333,6 +346,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     }
 
 
+    // returns CodeFragment with code and pointer to which one can write
     private CodeFragment declarationAndMaybeAssignment(String name, Type type, C_s_makcenomParser.ExprContext context, int line, CodeFragment calculatedValue) {
         ST declarationTemplate = templates.getInstanceOf("Declaration");
 
@@ -352,20 +366,18 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         declarationTemplate.add("memory_register", registerName);
 
-        // create a default value
-        if (type.listDimensions > 0) {
-            // start with empty list
+        // calculate initial value of the variable
+        if (context != null || calculatedValue != null) {
+            declarationTemplate.add("code_after", assignment(variableInfo, context, line, calculatedValue, false, false));
+        } else if (type.listDimensions > 0) {
+            // create a default value - an empty list
             ST listCreationTemplate = templates.getInstanceOf("ListCreation");
             listCreationTemplate.add("label_id", generateNewLabel());
             listCreationTemplate.add("memory_register", registerName);
+            listCreationTemplate.add("return_register", generateUniqueRegisterName("list"));
             listCreationTemplate.add("store", 1);
 
             declarationTemplate.add("code_after", listCreationTemplate.render());
-        }
-
-        // calculate initial value of the variable
-        if (context != null || calculatedValue != null) {
-            declarationTemplate.add("code_after", assignment(variableInfo, context, line, calculatedValue, false));
         }
 
         return new CodeFragment(declarationTemplate.render());
@@ -609,7 +621,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 ctx.expr(),
                 ctx.start.getLine(),
                 null,
-                ctx.LOGIC_ASSIGNMENT() != null));
+                ctx.LOGIC_ASSIGNMENT() != null,
+                true));
     }
 
     @Override
