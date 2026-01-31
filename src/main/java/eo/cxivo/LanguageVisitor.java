@@ -10,7 +10,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     STGroup templates = new STGroupFile("helper-libs/basics.stg");
 
     // new HashSet get pushed with every new scope
-    private final Stack<HashMap<String, VariableInfo>> variables = new Stack<>();
+    private Stack<HashMap<String, VariableInfo>> variables = new Stack<>();
     private final ErrorCollector errorCollector;
     private final List<CodeFragment> declarations = new ArrayList<>();
     private final HashMap<String, FunctionInfo> functions = new HashMap<>();
@@ -542,6 +542,33 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         return null;
     }
 
+    private CodeFragment garbageCollectWhenReturning(VariableInfo returning) {
+        StringBuilder garbageCollectingCode = new StringBuilder();
+        for (var scope: variables) {
+            for (var variable: scope.values()) {
+                if (variable.type.listDimensions > 0) {
+                    // first load the pointer
+                    ST loadTemplate = templates.getInstanceOf("GetFromVariable");
+                    loadTemplate.add("memory_register", variable.nameInCode);
+                    loadTemplate.add("type", variable.type.getNameInLLVM());
+                    String uniqueName = generateUniqueRegisterName("");
+                    loadTemplate.add("return_register", uniqueName);
+
+
+                    ST garbageTemplate = templates.getInstanceOf("GarbageCollect");
+                    garbageTemplate.add("memory_register", uniqueName);
+                    garbageTemplate.add("layers", variable.type.listDimensions - 1);
+                    garbageTemplate.add("except", returning.nameInCode);    // do NOT delete this one, which we are returning
+
+                    garbageCollectingCode.append(loadTemplate.render()).append("\r\n")
+                            .append(garbageTemplate.render()).append("\r\n");
+                }
+            }
+        }
+
+        return new CodeFragment(garbageCollectingCode.toString());
+    }
+
     @Override
     public CodeFragment visitReturn(C_s_makcenomParser.ReturnContext ctx) {
         ST returnTemplate = templates.getInstanceOf("Return");
@@ -553,11 +580,14 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
             return new CodeFragment();
         }
 
+        // garbage collect everything from the function
+
         returnTemplate.add("type", currentFunction.returnType.getNameInLLVM());
         CodeFragment code = visit(ctx.expr());
 
         returnTemplate.add("compute_value", code);
         returnTemplate.add("value_register", code.resultRegisterName);
+        returnTemplate.add("cleanup", garbageCollectWhenReturning(new VariableInfo(code.resultRegisterName, code.type)));
 
         return new CodeFragment(returnTemplate.render());
     }
@@ -572,6 +602,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                     + ": \"Hotovo\" sa používa len vo funkciách, asi chcete použiť \"Koniec\"");
             return new CodeFragment();
         }
+
+        returnTemplate.add("cleanup", garbageCollectWhenReturning(new VariableInfo("null", Type.VOID)));
 
         return new CodeFragment(returnTemplate.render());
     }
@@ -657,6 +689,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 true));
 
         // after every function call, garbage collect all arguments
+        // because inside the function we incremented the reference count
         StringBuilder garbageCollectingCode = new StringBuilder();
         if (!garbageCollectAfterFunction.isEmpty()) {
             for (VariableInfo register: garbageCollectAfterFunction) {
@@ -692,7 +725,10 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         // returning type
         functionInfo.returnType = new Type(ctx.returning, errorCollector);
 
-        // add new scope
+        // add new scope and hide existing variables
+        // when in a function definition, hide all other variables
+        Stack<HashMap<String, VariableInfo>> hiddenVariables = variables;
+        variables = new Stack<>();
         variables.push(new HashMap<>());
 
         // go through the arguments and add them to the scope
@@ -737,7 +773,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         // there must be at least one return statement in this scope
         // otherwise memory leaks from lists could happen
-        if (ctx.block().statement().stream().noneMatch(statement ->
+        if (ctx.statement().stream().noneMatch(statement ->
                 statement instanceof C_s_makcenomParser.StatementWithBodyContext
                 && (((C_s_makcenomParser.StatementWithBodyContext) statement).statementBody() instanceof C_s_makcenomParser.ReturnContext
                 || ((C_s_makcenomParser.StatementWithBodyContext) statement).statementBody() instanceof C_s_makcenomParser.ReturnNothingContext)
@@ -749,11 +785,16 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         }
 
         // add code inside the function
-        CodeFragment code = visit(ctx.block());
-        functionTemplate.add("code", code);
+        // we add the code of each statement
+        for (var statement : ctx.statement()) {
+            CodeFragment statCodeFragment = visit(statement);
+            functionTemplate.add("code", "\t"
+                    + statCodeFragment.code.replaceAll("\n", "\n\t")
+                    + "\r\n");
+        }
 
         // pop the scope and unset the current function
-        variables.pop();
+        variables = hiddenVariables;
         currentFunction = null;
 
         // DON'T actually return the function definition! Just save it
@@ -790,7 +831,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         }
 
         return new CodeFragment("\t"
-                + (template.render() + "\r\n" + garbageCollectingCode.toString())
+                + (template.render() + "\r\n" + garbageCollectingCode)
                 .replaceAll("\n", "\n\t"));
     }
 

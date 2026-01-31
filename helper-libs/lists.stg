@@ -39,7 +39,7 @@ ListAssign(memory_register, new_register, label_id, layers, calculate_new) ::= <
 store ptr <new_register>, ptr <memory_register>
 
 ; increment new list's reference counter
-%new_list_count_ptr_<label_id> = getelementptr %ListType, ptr <memory_register>, i32 0, i32 2
+%new_list_count_ptr_<label_id> = getelementptr %ListType, ptr <new_register>, i32 0, i32 2
 %new_list_count_<label_id> = load i32, ptr %new_list_count_ptr_<label_id>
 %new_list_count_inc_<label_id> = add i32 %new_list_count_<label_id>, 1
 store i32 %new_list_count_inc_<label_id>, ptr %new_list_count_ptr_<label_id>
@@ -58,11 +58,11 @@ store ptr <new_register>, ptr <memory_register>
 %new_list_count_inc_<label_id> = add i32 %new_list_count_<label_id>, 1
 store i32 %new_list_count_inc_<label_id>, ptr %new_list_count_ptr_<label_id>
 
-call void @decrement_and_garbage_collect(ptr %deassigned_<label_id>, i32 <layers>)
+call void @decrement_and_garbage_collect(ptr %deassigned_<label_id>, i32 <layers>, ptr null)
 >>
 
-GarbageCollect(memory_register, layers) ::= <<
-call void @decrement_and_garbage_collect(ptr <memory_register>, i32 <layers>)
+GarbageCollect(memory_register, layers, except) ::= <<
+call void @decrement_and_garbage_collect(ptr <memory_register>, i32 <layers>, ptr <except>)
 >>
 
 GetListElement(memory_register, type, label_id, index, calculate_index, return_register) ::= <<

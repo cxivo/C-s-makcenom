@@ -22,7 +22,7 @@ declare i32 @print_string(ptr)
 ; i32 size, i32 capacity, i32 reference count, ptr array itself
 %ListType = type {i32, i32, i32, ptr}
 
-define void @decrement_and_garbage_collect(ptr %list, i32 %layer) {
+define void @decrement_and_garbage_collect(ptr %list, i32 %layer, ptr %except) {
     ; decrement old list's reference counter
     %count_ptr = getelementptr %ListType, ptr %list, i32 0, i32 2
     %count = load i32, ptr %count_ptr
@@ -31,7 +31,13 @@ define void @decrement_and_garbage_collect(ptr %list, i32 %layer) {
 
     %is_zero = icmp eq i32 %count_dec, 0
 
-    br i1 %is_zero, label %remove, label %still_used
+    br i1 %is_zero, label %test_except, label %still_used
+
+test_except:
+    %list_int = ptrtoint ptr %list to i64
+    %except_int = ptrtoint ptr %except to i64
+    %skip_removal = icmp eq i64 %list_int, %except_int
+    br i1 %skip_removal, label %still_used, label %remove
 
 ; garbage collection itself
 remove:
@@ -53,7 +59,7 @@ iterate:
     %child_ptr = getelementptr ptr, ptr %array, i32 %i
     %child = load ptr, ptr %child_ptr
 
-    call void @decrement_and_garbage_collect(ptr %child, i32 %layer_dec)
+    call void @decrement_and_garbage_collect(ptr %child, i32 %layer_dec, ptr %except)
 
     %i_inc = add i32 %i, 1
     br label %cycle
@@ -223,11 +229,13 @@ FunctionCall(name, return_type, arguments, calculate_arguments, destination, is_
 <if (is_not_void)><destination> = <endif>call <return_type> @<name>(<arguments>)
 >>
 
-Return(type, value_register, compute_value) ::= <<
+Return(type, value_register, compute_value, cleanup) ::= <<
 <compute_value>
+<cleanup>
 ret <type> <value_register>
 >>
 
-ReturnNothing() ::= <<
+ReturnNothing(cleanup) ::= <<
+<cleanup>
 ret void
 >>

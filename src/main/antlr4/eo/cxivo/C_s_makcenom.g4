@@ -35,7 +35,7 @@ statementBody
     ;
 
 functionDefinition
-    : 'Funkcia' name=VARIABLE ('vracajúca' returning=type | 'nevracajúca nič') 'berie' (in_type=type in_name=VARIABLE (COMMA | AND))* in_type=type in_name=VARIABLE 'a robí:' block
+    : 'Funkcia' name=VARIABLE ('vracajúca' returning=type | 'nevracajúca nič') 'berie' (in_type=type in_name=VARIABLE (COMMA | AND))* in_type=type in_name=VARIABLE 'a robí:' INDENT statement* DEDENT
     ;
 
 block
