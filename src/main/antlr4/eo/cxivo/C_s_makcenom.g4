@@ -18,10 +18,10 @@ statement
 
 statementBody
     :   LET var_type=type VARIABLE (WHICH_WILL_BE expr)?                                                    # Declaration
-    |   IF condition=logic_expr COMMA? THEN ':'? (statementBody | block) (ELSE ':'? (statementBody | block))?         # Conditional
-    |   'Opakuj pre' varName=VARIABLE 'od' lower=num_expr 'po' upper=num_expr ':'? (statementBody | block)   # ForLoop
-    |   'Opakuj od' lower=num_expr 'po' upper=num_expr ':'? (statementBody | block)                          # ForLoop
-    |   'Kým' condition=logic_expr THEN? ':'? (statementBody | block)                                             # WhileLoop
+    |   IF condition=logic_expr COMMA? THEN ':'? (statementBody | NEWLINE* block NEWLINE*) (ELSE ':'? NEWLINE* (statementBody | block))?         # Conditional
+    |   'Opakuj pre' varName=VARIABLE 'od' lower=num_expr 'po' upper=num_expr ':'? (statementBody | NEWLINE* block)   # ForLoop
+    |   'Opakuj od' lower=num_expr 'po' upper=num_expr ':'? (statementBody | NEWLINE* block)                          # ForLoop
+    |   'Kým' condition=logic_expr THEN? ':'? (statementBody | NEWLINE* block)                                             # WhileLoop
     |   PRINT (expr) AND_PRINT_NEWLINE?                                     # Output
     |   PRINT_NEWLINE                                                       # PrintNewLine
     |   BREAK                           # Break
@@ -379,7 +379,7 @@ TEXT
     ;
 
 COMMENT
-    : NEWLINE '(' ~('\n' | '\r')* ')'
+    : NEWLINE WS* '(' ~('\n' | '\r')* ')'
     ;
 
 NEWLINE

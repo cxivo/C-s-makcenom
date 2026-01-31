@@ -1,3 +1,17 @@
-Majme text meno, ktoré bude slovo zo vstupu.
-Vypíš dĺžku textu meno.
-Vypíš meno a odriadkuj.
+Vypíš "Koľko čísel máme? ".
+Majme celé číslo počet, ktoré bude celé číslo zo vstupu.
+
+(Pre prípad že je počet nula.)
+Ak počet sa rovná 0 tak:
+    Vypíš "Nemá maximum!".
+inak:
+    Majme celé číslo najväčšie, ktoré bude celé číslo zo vstupu.
+
+    (Inicializujeme si ho na prvú položku)
+
+    Opakuj od 1 po počet:
+        Majme celé číslo kandidát, ktoré bude celé číslo zo vstupu.
+        Ak kandidát je väčší ako najväčšie tak najväčšie bude kandidát.
+
+    Vypíš "Najväčšie je: ".
+    Vypíš najväčšie a odriadkuj.

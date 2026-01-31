@@ -1,18 +1,17 @@
-Majme celé číslo počet.
-Načítaj celé číslo do premennej počet.
+Vypíš "Koľko čísel máme? ".
+Majme celé číslo počet, ktoré bude celé číslo zo vstupu.
 
 (Pre prípad že je počet nula.)
 Ak počet sa rovná 0 tak:
-	Vypíš "Nemá maximum!".
-	Koniec.
+    Vypíš "Nemá maximum!".
+inak:
+    Majme celé číslo najväčšie, ktoré bude celé číslo zo vstupu.
 
-Majme celé číslo najväčšie.
-Načítaj celé číslo do premennej najväčšie. (Inicializujeme si ho na prvú položku.)
+    (Inicializujeme si ho na prvú položku)
 
-Opakuj od 1 po počet mínus 1:
-	Majme celé číslo kandidát.
-	Načítaj celé číslo do premennej kandidát.
-	Ak kandidát je väčší ako najväčšie tak najväčšie bude kandidát.
+    Opakuj od 1 po počet:
+        Majme celé číslo kandidát, ktoré bude celé číslo zo vstupu.
+        Ak kandidát je väčší ako najväčšie tak najväčšie bude kandidát.
 
-
-Vypíš kandidát a odriadkuj.
+    Vypíš "Najväčšie je: ".
+    Vypíš najväčšie a odriadkuj.
