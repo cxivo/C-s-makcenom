@@ -15,9 +15,10 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
     private final List<CodeFragment> declarations = new ArrayList<>();
     private final HashMap<String, FunctionInfo> functions = new HashMap<>();
     private FunctionInfo currentFunction = null;
-    private final List<VariableInfo> garbageCollectAfterFunction = new ArrayList<>();
+    private final Stack<List<VariableInfo>> garbageCollectAfterFunction = new Stack<>();
     private final Stack<String> breakLabels = new Stack<>();
     private final Stack<String> continueLabels = new Stack<>();
+    private boolean justExitedFunction = false;
 
     private int labelIndex = 0;
 
@@ -773,7 +774,11 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                     ST garbageTemplate = templates.getInstanceOf("GarbageCollect");
                     garbageTemplate.add("memory_register", uniqueName);
                     garbageTemplate.add("layers", variable.type.listDimensions - 1);
-                    garbageTemplate.add("except", returning.nameInCode);    // do NOT delete this one, which we are returning
+                    String except = returning.nameInCode;
+                    if (except.isBlank()) {
+                        except = "null";
+                    }
+                    garbageTemplate.add("except", except);    // do NOT delete this one, which we are returning
 
                     garbageCollectingCode.append(loadTemplate.render()).append("\r\n")
                             .append(garbageTemplate.render()).append("\r\n");
@@ -825,6 +830,12 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
     @Override
     public CodeFragment visitProcedureCall(C_s_makcenomParser.ProcedureCallContext ctx) {
+        if (functions.get(ctx.function_expr().name.getText().toLowerCase()) == null) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Funkcia neexistuje!");
+            return new CodeFragment();
+        }
+
         // check whether a non-void function is called
         if (functions.get(ctx.function_expr().name.getText().toLowerCase()).returnType.primitive != Type.Primitive.VOID) {
             errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
@@ -855,6 +866,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         }
 
         List<String> arguments = new ArrayList<>();
+        garbageCollectAfterFunction.push(new ArrayList<>());
 
         // go through the arguments and visit them all
         for (int i = 0; ctx.expr(i) != null; i++) {
@@ -870,7 +882,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
             // what to garbage collect right after function call (and assignment)
             if (code.type.listDimensions > 0) {
-                garbageCollectAfterFunction.add(new VariableInfo(code.resultRegisterName, code.type));
+                garbageCollectAfterFunction.peek().add(new VariableInfo(code.resultRegisterName, code.type));
             }
 
             arguments.add(functionInfo.arguments.get(i).type.getNameInLLVM() + " " + code.resultRegisterName);
@@ -879,6 +891,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         functionTemplate.add("name", functionInfo.nameInCode);
         functionTemplate.add("return_type", functionInfo.returnType.getNameInLLVM());
         functionTemplate.add("arguments", String.join(", ", arguments));
+
+
 
         // if not void, we add a register which will hold the result
         if (functionInfo.returnType.primitive != Type.Primitive.VOID) {
@@ -906,17 +920,19 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         // after every function call, garbage collect all arguments
         // because inside the function we incremented the reference count
         StringBuilder garbageCollectingCode = new StringBuilder();
-        if (!garbageCollectAfterFunction.isEmpty()) {
-            for (VariableInfo register: garbageCollectAfterFunction) {
+
+        if (justExitedFunction) {
+            for (VariableInfo register : garbageCollectAfterFunction.peek()) {
                 ST garbageTemplate = templates.getInstanceOf("GarbageCollect");
                 garbageTemplate.add("memory_register", register.nameInCode);
                 garbageTemplate.add("layers", register.type.listDimensions - 1);
 
                 garbageCollectingCode.append(garbageTemplate.render()).append("\r\n");
             }
-
-            garbageCollectAfterFunction.clear();
+            garbageCollectAfterFunction.pop();
+            justExitedFunction = false;
         }
+
 
         return new CodeFragment(assignment + garbageCollectingCode.toString());
     }
@@ -973,7 +989,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         }
 
         // put into the registry for functions
-        functions.put(ctx.name.getText(), functionInfo);
+        functions.put(ctx.name.getText().toLowerCase(), functionInfo);
 
         // and set as the current function
         currentFunction = functionInfo;
@@ -1011,6 +1027,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         // pop the scope and unset the current function
         variables = hiddenVariables;
         currentFunction = null;
+        justExitedFunction = true;
 
         // DON'T actually return the function definition! Just save it
         declarations.add(new CodeFragment(functionTemplate.render()));
@@ -1040,6 +1057,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 ST garbageTemplate = templates.getInstanceOf("GarbageCollect");
                 garbageTemplate.add("memory_register", register.nameInCode);
                 garbageTemplate.add("layers", register.type.listDimensions - 1);
+                garbageTemplate.add("except", "null");
 
                 garbageCollectingCode.append(garbageTemplate.render()).append("\r\n");
             }
@@ -1200,11 +1218,6 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         decreaseListSizeTemplate.add("type", innerType.getNameInLLVM());
 
         return new CodeFragment(decreaseListSizeTemplate.render());
-    }
-
-    @Override
-    public CodeFragment visitCharOfText(C_s_makcenomParser.CharOfTextContext ctx) {
-        return null;
     }
 
     @Override

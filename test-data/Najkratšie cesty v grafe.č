@@ -1,35 +1,41 @@
-Majme celé číslo počet.
-Načítaj celé číslo do premennej počet.
+Vypíš "Veľkosť tabuľky: "
+
+Majme celé číslo počet, ktoré bude celé číslo zo vstupu.
 
 Majme zoznam zoznamov celých čísel matica.
 
 (Načítam vstup.)
-Opakuj od 0 po počet mínus 1:
-	Majme zoznam celých čísel riadok.
-	Opakuj od 0 po počet mínus 1:
-		Majme celé číslo vzdialenosť.
-		Načítaj celé číslo do premennej vzdialenosť.
-		Pridaj na koniec zoznamu riadok prvok vzdialenosť.
-	Pridaj na koniec zoznamu matica prvok riadok.
+Opakuj od 0 po počet:
+	Majme zoznam celých čísel riadoček.
+	Opakuj od 0 po počet:
+		Majme celé číslo vzdialenosť, ktorá bude celé číslo zo vstupu.
+		Pridaj do zoznamu riadoček prvok vzdialenosť.
+	Pridaj do zoznamu matica prvok riadoček.
 
 
 Funkcia minimum vracajúca celé číslo berie celé číslo ľavé, celé číslo pravé a robí:
-	Ak ľavé je menšie ako pravé tak vráť ľavé, inak vráť pravé.
+	Ak ľavé je menšie ako pravé tak vráť ľavé.
+	Vráť pravé.
 
 
 (Bez hanby skopírovaný a prepísaný z https://www.geeksforgeeks.org/dsa/floyd-warshall-algorithm-dp-16/.)
 (Hádam to nie je problém, len chcem byť transparentná.)
-Funckia FlojdVaršalovAlgoritmus nevracajúci nič berie zoznam zoznamov celých čísel vzdialenosti a robí:
-	Opakuj pre k od 0 po dĺžka zoznamu susednosť mínus 1:
-		Opakuj pre i od 0 po dĺžka zoznamu susednosť mínus 1:
-			Opakuj pre j od 0 po dĺžka zoznamu susednosť mínus 1:
-				Ak prvok zoznamu susednosť na pozícii (i, k) sa nerovná záporná 1 a prvok zoznamu susednosť na pozícii (k, j) sa nerovná záporná 1 tak:
+Funkcia FlojdVaršalovAlgoritmus nevracajúca nič berie zoznam zoznamov celých čísel susednosť a robí:
+	Opakuj pre k od 0 po dĺžka zoznamu susednosť:
+		Opakuj pre i od 0 po dĺžka zoznamu susednosť:
+			Opakuj pre j od 0 po dĺžka zoznamu susednosť:
+				Ak prvok zoznamu susednosť na pozícii (i, k) sa nerovná -1 a prvok zoznamu susednosť na pozícii (k, j) sa nerovná -1 tak:
 					Prvok zoznamu susednosť na pozícii (i, j) bude minimum (prvok zoznamu susednosť na pozícii (i, j), prvok zoznamu susednosť na pozícii (i, k) plus prvok zoznamu susednosť na pozícii (k, j)).
-				
+    Hotovo.
+
 FlojdVaršalovAlgoritmus (matica).
 
+Odriadkuj.
+Vypíš "Výsledok: " a odriadkuj.
+
 (Vypíšem výsledok.)
-Opakuj pre i od 0 po počet mínus 1:
-	Opakuj pre j od 0 po počet mínus 1:
+Opakuj pre i od 0 po počet:
+	Opakuj pre j od 0 po počet:
 		Vypíš prvok zoznamu matica na pozícii (i, j).
+		Vypíš ' '.
 	Odriadkuj.

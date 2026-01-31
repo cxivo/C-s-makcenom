@@ -10,7 +10,7 @@ public class Main {
 
     // I won't lie, I can't really do this any differently
     public static void main(String[] args) throws Exception {
-        CharStream in = CharStreams.fromFileName("test-data/krátkyTest.č");
+        CharStream in = CharStreams.fromFileName("test-data/input.č");
         PrintStream out = new PrintStream(new FileOutputStream("output/program.ll"));  //System.out;
 
         // convert tabs and spaces to indents
@@ -20,8 +20,8 @@ public class Main {
         int previousIndent = 0;
         int errorCount = 0;
         for (int i = 0; i < lines.length; i++) {
-            if (lines[i].strip().startsWith("(") || lines[i].isBlank()) {
-                // is a comment or empty line; ignore
+            if (lines[i].isBlank()) {  //    lines[i].strip().startsWith("(") ||
+                // is empty line; ignore
                 continue;
             }
 
@@ -52,7 +52,7 @@ public class Main {
             if (currentIndent > previousIndent) {
                 lines[i] = String.join("", Collections.nCopies(currentIndent - previousIndent, "{\n")) + lines[i];
             } else if (currentIndent < previousIndent) {
-                lines[i] = String.join("", Collections.nCopies(previousIndent - currentIndent, "}\n")) + lines[i];
+                lines[i] = String.join("", Collections.nCopies(previousIndent - currentIndent, "}\n\n")) + lines[i];
             }
 
             previousIndent = currentIndent;
@@ -62,9 +62,9 @@ public class Main {
             return;
         }
 
-        String edited = "\n" + String.join("\n", lines) + String.join("", Collections.nCopies(previousIndent, "}\n")) + "\n";
+        String edited = "\n" + String.join("\n", lines) + "\n" + String.join("", Collections.nCopies(previousIndent, "}\n")) + "\n";
         // this is the one the grammar works with
-        //System.out.println(edited);
+        System.out.println(edited);
         CharStream inEdited = CharStreams.fromString(edited);
 
         eo.cxivo.C_s_makcenomLexer lexer = new eo.cxivo.C_s_makcenomLexer(inEdited);

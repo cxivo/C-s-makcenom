@@ -1,16 +1,14 @@
-Majme celé číslo počet.
-Načítaj celé číslo do premennej počet.
+Majme celé číslo počet, ktoré bude celé číslo.
 
 Majme zoznam textov reťazce.
 
 (Načítame texty.)
 Opakuj od 1 po počet:
-	Majme text reťazec.
-	Načítaj riadok do premennej reťazec.
-	Pridaj na koniec zoznamu reťazce prvok reťazec.
+	Majme text reťazec, ktorý bude riadok zo vstupu.
+	Pridaj do zoznamu reťazce prvok reťazec.
 
 
-Funkcia lexikografickyMenší vracajúca pravdivosť berie text prvý, text druhý a robí:
+Funkcia lexikografickyMenší vracajúca pravdivosť berie zoznam znakov prvý, zoznam znakov druhý a robí:
 	Majme celé číslo kratší, ktoré bude dĺžka zoznamu prvý.
 	Ak dĺžka zoznamu druhý je menšia ako kratší tak kratší bude dĺžka zoznamu druhý.
 
@@ -18,7 +16,8 @@ Funkcia lexikografickyMenší vracajúca pravdivosť berie text prvý, text druh
 		Ak n-tý znak textu prvý je menší ako n-tý znak textu druhý tak vráť áno.
 		
 	(Ak sa jeden z reťazcov už skončil a doteraz sa rovnali.)
-	Ak dĺžka zoznamu prvý je menšia či rovná ako kratší tak vráť áno, inak vráť nie.
+	Ak dĺžka zoznamu prvý je menšia či rovná ako kratší tak vráť áno.
+	Vráť nie.
 	
 
 (Mergesort.)
@@ -33,7 +32,7 @@ Funkcia spojovacotrieď nevracajúca nič berie zoznam textov neutriedené, cel�
 	Spojovacotrieď neutriedené, stred, pokiaľ.
 	
 	(Teraz spájame.)
-	Majme zoznam textov spojené. (Dočasná premenná.)
+	Majme zoznam textov spojené.
 	Majme celé číslo ľavé, ktoré bude odkiaľ.
 	Majme celé číslo pravé, ktoré bude stred.
 	
@@ -57,9 +56,10 @@ Funkcia spojovacotrieď nevracajúca nič berie zoznam textov neutriedené, cel�
 	(Teraz všetky texty prekopírujeme späť.)
 	Opakuj pre i od 0 po pokiaľ mínus odkiaľ:
 		Prvok zoznamu neutriedené na pozícii (n plus odkiaľ) bude n-tý prvok zoznamu spojené.
+	Hotovo.
 		
 
-Spojovacoutrieď reťazce, 0, počet.
+Spojovacoutrieď (reťazce, 0, počet).
 
 Opakuj pre i od 0 po počet mínus 1:
 	Vypíš i-ty prvok zoznamu reťazce a odriadkuj.

@@ -37,7 +37,7 @@ call i32 @print_newline()
 PrintChar(compute_value, value_register, label_id, newline) ::= <<
 <compute_value>
 %char_<label_id> = zext i8 <value_register> to i32
-call i32 @putchar(i32 char_<label_id>)
+call i32 @putchar(i32 %char_<label_id>)
 <if (newline)>
 call i32 @print_newline()
 <endif>
