@@ -690,29 +690,35 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         CodeFragment codeFragment = visit(ctx.expr());
 
         // what kind of print to use
-        if (codeFragment.type.listDimensions == 1 && codeFragment.type.primitive == Type.Primitive.CHAR) {
-            // String from variable
-            // get the array itself
-            ST getArrayTemplate = templates.getInstanceOf("GetArrayFromList");
-            getArrayTemplate.add("compute_value", codeFragment);
-            getArrayTemplate.add("label_id", generateNewLabel());
-            String arrayPointer = generateUniqueRegisterName("");
-            getArrayTemplate.add("return_register", arrayPointer);
-            getArrayTemplate.add("memory_register", codeFragment.resultRegisterName);
+        if (codeFragment.type.listDimensions > 0) {
+            if (codeFragment.type.listDimensions == 1 && codeFragment.type.primitive == Type.Primitive.CHAR) {
+                // String from variable
+                // get the array itself
+                ST getArrayTemplate = templates.getInstanceOf("GetArrayFromList");
+                getArrayTemplate.add("compute_value", codeFragment);
+                getArrayTemplate.add("label_id", generateNewLabel());
+                String arrayPointer = generateUniqueRegisterName("");
+                getArrayTemplate.add("return_register", arrayPointer);
+                getArrayTemplate.add("memory_register", codeFragment.resultRegisterName);
 
-            outputTemplate = templates.getInstanceOf("PrintString");
-            outputTemplate.add("compute_value", getArrayTemplate.render());
-            outputTemplate.add("value_register", arrayPointer);
-        } else if (ctx.expr().num_expr() != null) {
+                outputTemplate = templates.getInstanceOf("PrintString");
+                outputTemplate.add("compute_value", getArrayTemplate.render());
+                outputTemplate.add("value_register", arrayPointer);
+            } else {
+                errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                        + ": Priamo vypisovať zoznamy je možné iba pre zoznamy znakov - teda texty");
+                return new CodeFragment();
+            }
+        } else if (codeFragment.type.primitive == Type.Primitive.INT) {
             outputTemplate = templates.getInstanceOf("PrintNumber");
             outputTemplate.add("compute_value", codeFragment);
             outputTemplate.add("value_register", codeFragment.resultRegisterName);
-        } else if (ctx.expr().CHARACTER() != null) {
+        } else if (codeFragment.type.primitive == Type.Primitive.CHAR) {
             outputTemplate = templates.getInstanceOf("PrintChar");
             outputTemplate.add("compute_value", codeFragment);
             outputTemplate.add("label_id", generateNewLabel());
             outputTemplate.add("value_register", codeFragment.resultRegisterName);
-        } else if (ctx.expr().logic_expr() != null) {
+        } else if (codeFragment.type.primitive == Type.Primitive.BOOL) {
             outputTemplate = templates.getInstanceOf("PrintBoolean");
             outputTemplate.add("compute_value", codeFragment);
             outputTemplate.add("label_id", generateNewLabel());
