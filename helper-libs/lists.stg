@@ -65,6 +65,11 @@ GarbageCollect(memory_register, layers, except) ::= <<
 call void @decrement_and_garbage_collect(ptr <memory_register>, i32 <layers>, ptr <except>)
 >>
 
+LoadAndGarbageCollect(memory_register, layers, except, label_id) ::= <<
+%value_<label_id> = load ptr, ptr <memory_register>
+call void @decrement_and_garbage_collect(ptr %value_<label_id>, i32 <layers>, ptr <except>)
+>>
+
 GetListElement(memory_register, type, label_id, index, calculate_index, return_register) ::= <<
 %list_info_<label_id> = load ptr, ptr <memory_register>
 %array_ptr_<label_id> = getelementptr %ListType, ptr %list_info_<label_id>, i32 0, i32 3

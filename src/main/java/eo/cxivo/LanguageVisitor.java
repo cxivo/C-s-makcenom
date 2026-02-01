@@ -862,6 +862,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                     + ": Nie je dovolené ignorovať výsledok funkcií, čo niečo vracajú!");
             return new CodeFragment();
         }
+
+        justExitedFunction = false;
         return visit(ctx.function_expr());
     }
 
@@ -873,6 +875,12 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
         if (!functions.containsKey(ctx.name.getText().toLowerCase())) {
             errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
                     + ": Neznáma funkcia \"" + ctx.name.getText() + "\"");
+            return new CodeFragment();
+        }
+
+        if (ctx.expr().stream().anyMatch(c -> c.TEXT() != null || c.FROM_INPUT() != null | c.array_expr() != null)) {
+            errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
+                    + ": Funkcie nemôžu brať takto rovno hodené konštantné texty ani zoznamy, ani vstup. Použite prosím premennú.");
             return new CodeFragment();
         }
 
@@ -895,7 +903,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
             if (!code.type.equals(functionInfo.arguments.get(i).type)) {
                 errorCollector.add("Problém na riadku " + ctx.getStart().getLine()
-                        + ": Nesprávny typ argumentu číslo " + i + ": Požadovaný typ"
+                        + ": Nesprávny typ argumentu číslo " + i + ": Požadovaný typ "
                         + functionInfo.arguments.get(i).type.getNameInLLVM() + ", nájdený " + code.type.getNameInLLVM());
                 return new CodeFragment();
             }
@@ -1076,10 +1084,11 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
 
         for (VariableInfo register: exitingScope) {
             if (register.type.listDimensions > 0) {
-                ST garbageTemplate = templates.getInstanceOf("GarbageCollect");
+                ST garbageTemplate = templates.getInstanceOf("LoadAndGarbageCollect");
                 garbageTemplate.add("memory_register", register.nameInCode);
                 garbageTemplate.add("layers", register.type.listDimensions - 1);
                 garbageTemplate.add("except", "null");
+                garbageTemplate.add("label_id", generateNewLabel());
 
                 garbageCollectingCode.append(garbageTemplate.render()).append("\r\n");
             }
