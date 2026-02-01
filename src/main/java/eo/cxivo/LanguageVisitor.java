@@ -250,11 +250,25 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 return new CodeFragment();
             }
 
-            variableAssignmentTemplate.add("memory_register", variableInfo.nameInCode);
-            variableAssignmentTemplate.add("type", variableInfo.type.getNameInLLVM());
-            variableAssignmentTemplate.add("compute_value", calculatedValue);
-            variableAssignmentTemplate.add("value_register", calculatedValue.resultRegisterName);
-            return new CodeFragment(variableAssignmentTemplate.render(), variableInfo.nameInCode, variableInfo.type);
+            if (calculatedValue.type.listDimensions > 0) {
+                // increase refcount
+                ST listTemplate = templates.getInstanceOf("ListAssign");
+
+                listTemplate.add("label_id", generateNewLabel());
+                listTemplate.add("layers", variableInfo.type.listDimensions - 1);
+                listTemplate.add("new_register", calculatedValue.resultRegisterName);
+                listTemplate.add("calculate_new", calculatedValue);
+                listTemplate.add("memory_register", variableInfo.nameInCode);
+
+                return new CodeFragment(listTemplate.render(), variableInfo.nameInCode, variableInfo.type);
+            } else {
+                // regular var
+                variableAssignmentTemplate.add("memory_register", variableInfo.nameInCode);
+                variableAssignmentTemplate.add("type", variableInfo.type.getNameInLLVM());
+                variableAssignmentTemplate.add("compute_value", calculatedValue);
+                variableAssignmentTemplate.add("value_register", calculatedValue.resultRegisterName);
+                return new CodeFragment(variableAssignmentTemplate.render(), variableInfo.nameInCode, variableInfo.type);
+            }
         } else if (!variableInfo.type.tableLengths.isEmpty() && context.array_expr() != null) {
             // TABLE
 
