@@ -28,7 +28,7 @@ statementBody
     |   CONTINUE                        # Continue
     |   DONE                            # ReturnNothing
     |   RETURN expr                     # Return
-    |   'Pridaj do zoznamu' array=id 'prvok' expr                     # AddElement
+    |   'Pridaj do zoznamu' array=id expr                     # AddElement
     |   ('Zmaž' | 'Odstráň') ' zo zoznamu' array=id                   # RemoveElement
     |   function_expr                                           # ProcedureCall
     |   id op=(LOGIC_ASSIGNMENT | ASSIGNMENT) expr              # Assignment
@@ -43,15 +43,15 @@ block
     ;
 
 id
-    :   (index=VARIABLE ('-tý ' | '-ty ')? ) 'prvok' ('zoznamu' | 'tabuľky') array=VARIABLE                      # ArrayElement
-    |   'prvok' ('zoznamu' | 'tabuľky') array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN          # ArrayElement
+    :    ('prvok zoznamu' | 'prvok tabuľky') array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN          # ArrayElement
+    |   'znak textu' array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN             # ArrayElement
+    |   (index=VARIABLE ('-tý ' | '-ty ')? ) ('prvok zoznamu' | 'prvok tabuľky') array=VARIABLE                      # ArrayElement
     |   (index=VARIABLE ('-tý ' | '-ty ')? ) 'znak textu' array=VARIABLE                         # ArrayElement
     |   (index=VARIABLE ('-te ')?) 'písmeno textu' array=VARIABLE                               # ArrayElement
-    |   'znak textu' array=VARIABLE 'na pozícii' LEFT_PAREN (num_expr COMMA)* num_expr RIGHT_PAREN             # ArrayElement
     |   VARIABLE                                                                                               # Variable
     ;
 
-expr: num_expr | logic_expr | array_expr | TEXT | CHARACTER | function_expr | input_type FROM_INPUT;
+expr: num_expr | logic_expr | array_expr | TEXT | CHARACTER | 'výsledok funkcie'? function_expr | input_type FROM_INPUT;
 
 function_expr
     :   name=VARIABLE LEFT_PAREN (expr COMMA)* expr RIGHT_PAREN
