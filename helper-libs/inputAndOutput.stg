@@ -17,15 +17,15 @@ call i32 @print_newline()
 // Printing a boolean
 PrintBoolean(compute_value, value_register, label_id, newline) ::= <<
 <compute_value>
-br <value_register>, label %printtrue<label_id>, label %printfalse<label_id>
+br i1 <value_register>, label %printtrue<label_id>, label %printfalse<label_id>
 
 printtrue<label_id>:
     call i32 @print_true()
-    br %endprint<label_id>
+    br label %endprint<label_id>
 
 printfalse<label_id>:
     call i32 @print_false()
-    br %endprint<label_id>
+    br label %endprint<label_id>
 
 endprint<label_id>:
 <if (newline)>
