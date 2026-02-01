@@ -795,7 +795,7 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                     garbageTemplate.add("memory_register", uniqueName);
                     garbageTemplate.add("layers", variable.type.listDimensions - 1);
                     String except = returning.nameInCode;
-                    if (except.isBlank()) {
+                    if (except.isBlank() || returning.type.listDimensions == 0) {
                         except = "null";
                     }
                     garbageTemplate.add("except", except);    // do NOT delete this one, which we are returning
@@ -946,6 +946,8 @@ public class LanguageVisitor extends C_s_makcenomBaseVisitor<CodeFragment> {
                 ST garbageTemplate = templates.getInstanceOf("GarbageCollect");
                 garbageTemplate.add("memory_register", register.nameInCode);
                 garbageTemplate.add("layers", register.type.listDimensions - 1);
+                garbageTemplate.add("except", "null");    // do NOT delete this one, which we are returning
+
 
                 garbageCollectingCode.append(garbageTemplate.render()).append("\r\n");
             }
