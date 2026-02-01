@@ -25,7 +25,7 @@ public class Main {
             }
 
             if (lines[i].contains("{") || lines[i].contains("}")) {
-                System.err.println("Problém na riadku " + i + ": Používajte tabulátory, nie kučeravé zátvorky!");
+                System.err.println("Problém na riadku " + (i + 1) + ": Používajte tabulátory, nie kučeravé zátvorky!");
                 errorCount++;
             }
 
@@ -42,16 +42,27 @@ public class Main {
             }
 
             if (spaces % 4 != 0) {
-                System.err.println("Problém na riadku " + i + ": Na odsadenie používajte len tabulátory a medzery, "
+                System.err.println("Problém na riadku " + (i + 1) + ": Na odsadenie používajte len tabulátory a medzery, "
                         + "a nezabudnite že jeden tabulátor sú 4 medzery!! Lebo som povedala.");
                 errorCount++;
             }
 
             int currentIndent = spaces / 4;
+
+            if (currentIndent > 0 && i == 0) {
+                System.err.println("Problém na riadku " + (i + 1) + ": Prvý riadok nemôže byť odsadený!!");
+                errorCount++;
+            } else if (currentIndent - previousIndent > 1) {
+                System.err.println("Problém na riadku " + (i + 1) + ": Naraz možno odsadiť len o jeden blok hlbšie");
+                errorCount++;
+            }
+
             if (currentIndent > previousIndent) {
-                lines[i] = String.join("", Collections.nCopies(currentIndent - previousIndent, "{\n")) + lines[i];
+                if (i > 0) {
+                    lines[i - 1] += " {";
+                }
             } else if (currentIndent < previousIndent) {
-                lines[i] = String.join("", Collections.nCopies(previousIndent - currentIndent, "}\n\n")) + lines[i];
+                lines[i - 1] += String.join("", Collections.nCopies(previousIndent - currentIndent, "}"));
             }
 
             previousIndent = currentIndent;
@@ -61,9 +72,19 @@ public class Main {
             return;
         }
 
-        String edited = "\n" + String.join("\n", lines) + "\n" + String.join("", Collections.nCopies(previousIndent, "}\n")) + "\n";
+        String edited = String.join("\n", lines) + "\n" + String.join("", Collections.nCopies(previousIndent, "}\n")) + "\n";
+
+        /*  output edited program
+        String[] editedLines = edited.split("\n");
+        StringBuilder withNumberedLines = new StringBuilder();
+        for (int i = 0; i < editedLines.length; i++) {
+            withNumberedLines.append(i).append(": ").append(editedLines[i]).append("\n");
+        }
+
+        System.out.println(withNumberedLines.toString());
+         */
+
         // this is the one the grammar works with
-        System.out.println(edited);
         CharStream inEdited = CharStreams.fromString(edited);
 
         eo.cxivo.C_s_makcenomLexer lexer = new eo.cxivo.C_s_makcenomLexer(inEdited);
