@@ -1,76 +1,41 @@
+Vypíš "Veľkosť tabuľky: "
+
 Majme celé číslo počet, ktoré bude celé číslo zo vstupu.
 
-Majme zoznam textov reťazce.
+Majme zoznam zoznamov celých čísel matica.
 
-(Načítame texty.)
+(Načítam vstup.)
+Opakuj od 0 po počet:
+	Majme zoznam celých čísel riadoček.
+	Opakuj od 0 po počet:
+		Majme celé číslo vzdialenosť, ktorá bude celé číslo zo vstupu.
+		Pridaj do zoznamu riadoček vzdialenosť.
+	Pridaj do zoznamu matica riadoček.
+
+
+Funkcia minimum vracajúca celé číslo berie celé číslo ľavé, celé číslo pravé a robí:
+	Ak ľavé je menšie ako pravé tak vráť ľavé.
+	Vráť pravé.
+
+
+(Bez hanby skopírovaný a prepísaný z https://www.geeksforgeeks.org/dsa/floyd-warshall-algorithm-dp-16/.)
+(Hádam to nie je problém, len chcem byť transparentná.)
+Funkcia FlojdVaršalovAlgoritmus nevracajúca nič berie zoznam zoznamov celých čísel susednosť a robí:
+	Opakuj pre k od 0 po dĺžka zoznamu susednosť:
+		Opakuj pre i od 0 po dĺžka zoznamu susednosť:
+			Opakuj pre j od 0 po dĺžka zoznamu susednosť:
+				Ak prvok zoznamu susednosť na pozícii (i, k) sa nerovná -1 a prvok zoznamu susednosť na pozícii (k, j) sa nerovná -1 tak:
+					Prvok zoznamu susednosť na pozícii (i, j) bude minimum (prvok zoznamu susednosť na pozícii (i, j), prvok zoznamu susednosť na pozícii (i, k) plus prvok zoznamu susednosť na pozícii (k, j)).
+    Hotovo.
+
+FlojdVaršalovAlgoritmus (matica).
+
+Odriadkuj.
+Vypíš "Výsledok: " a odriadkuj.
+
+(Vypíšem výsledok.)
 Opakuj pre i od 0 po počet:
-    Majme text reťazec, ktorý bude riadok zo vstupu.
-    Pridaj do zoznamu reťazce reťazec.
-
-
-Funkcia lexikografickyMenší vracajúca pravdivosť berie text prvý, text druhý a robí:
-	Majme celé číslo kratší, ktoré bude dĺžka textu prvý.
-	Ak dĺžka textu druhý je menšia ako kratší, tak kratší bude dĺžka textu druhý.
-
-	Opakuj pre n od 0 po kratší:
-	    Vypíš n-tý znak textu prvý a odriadkuj.
-	    Vypíš n-tý znak textu druhý a odriadkuj.
-		Ak n-tý znak textu prvý je menší ako n-tý znak textu druhý tak:
-		    Vráť áno.
-		Inak:
-		    Ak n-tý znak textu prvý je väčší ako n-tý znak textu druhý tak vráť nie.
-
-	(Ak sa jeden z reťazcov už skončil a doteraz sa rovnali.)
-	Ak dĺžka textu prvý je menšia ako dĺžka textu druhý tak vráť áno.
-	Vráť nie.
-
-
-(Mergesort.)
-(Triedi priamo na argumentoch - zoznamy a texty sú totiž predávané funkciám akoby smerníkom, iba čísla, pravdivosti a znaky sú predávané hodnotou.)
-
-Funkcia Spojovacoutrieď nevracajúca nič berie zoznam textov neutriedené, celé číslo odkiaľ, celé číslo pokiaľ a robí:
-	(Základný prípad.)
-	Ak odkiaľ plus 1 je väčšie alebo rovné ako pokiaľ tak hotovo.
-
-	(Najprv rekurzia.)
-	Majme celé číslo stred, ktoré bude (odkiaľ plus pokiaľ plus 1) deleno 2.
-	Spojovacoutrieď (neutriedené, odkiaľ, stred).
-	Spojovacoutrieď (neutriedené, stred, pokiaľ).
-
-	(Teraz spájame.)
-	Majme zoznam textov spojené.
-	Majme celé číslo ľavé, ktoré bude odkiaľ.
-	Majme celé číslo pravé, ktoré bude stred.
-
-	Kým ľavé je menšie ako stred a pravé je menšie ako pokiaľ tak:
-	    Majme pravdivosť menší, ktorá bude lexikografickyMenší (prvok zoznamu neutriedené na pozícii (ľavé), prvok zoznamu neutriedené na pozícii (pravé)).
-		Ak menší tak:
-			Pridaj do zoznamu spojené prvok zoznamu neutriedené na pozícii (ľavé).
-			Ľavé bude ľavé plus 1.
-		Inak:
-			Pridaj do zoznamu spojené prvok zoznamu neutriedené na pozícii (pravé).
-			Pravé bude pravé plus 1.
-
-	(Jednu polovicu sme už prešli celú, ale nevieme ktorú, ideme teda ostatné prvky nahádzať do dočasného poľa.)
-	Kým ľavé je menšie ako stred tak:
-		Pridaj do zoznamu spojené prvok zoznamu neutriedené na pozícii (ľavé).
-		Ľavé bude ľavé plus 1.
-
-	Kým pravé je menšie ako pokiaľ tak:
-		Pridaj do zoznamu spojené prvok zoznamu neutriedené na pozícii (pravé).
-		Pravé bude pravé plus 1.
-
-	(Teraz všetky texty prekopírujeme späť.)
-	Opakuj pre i od odkiaľ po pokiaľ:
-		I-ty prvok zoznamu neutriedené bude prvok zoznamu spojené na pozícii (i mínus odkiaľ).
-	Hotovo.
-
-
-Spojovacoutrieď (reťazce, 0, dĺžka zoznamu reťazce).
-
-Vypíš "Utriedené:" a odriadkuj.
-
-Opakuj pre i od 0 po dĺžku zoznamu reťazce:
-	Vypíš i-ty prvok zoznamu reťazce a odriadkuj.
-
-
+	Opakuj pre j od 0 po počet:
+		Vypíš prvok zoznamu matica na pozícii (i, j).
+		Vypíš ' '.
+	Odriadkuj.

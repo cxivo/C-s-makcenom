@@ -9,8 +9,8 @@ Opakuj od 0 po počet:
 	Majme zoznam celých čísel riadoček.
 	Opakuj od 0 po počet:
 		Majme celé číslo vzdialenosť, ktorá bude celé číslo zo vstupu.
-		Pridaj do zoznamu riadoček prvok vzdialenosť.
-	Pridaj do zoznamu matica prvok riadoček.
+		Pridaj do zoznamu riadoček vzdialenosť.
+	Pridaj do zoznamu matica riadoček.
 
 
 Funkcia minimum vracajúca celé číslo berie celé číslo ľavé, celé číslo pravé a robí:
